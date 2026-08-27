@@ -42,8 +42,12 @@ function validateRegister(req, res, next) {
     return res.status(400).json({ error: 'A valid email address is required (e.g. user@campus.edu).' });
   }
 
-  if (!password || typeof password !== 'string' || !validator.isLength(password, { min: 6, max: 128 })) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+  // Strict Enterprise Password Complexity: Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character
+  const passwordComplexityRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,128}$/;
+  if (!password || typeof password !== 'string' || !passwordComplexityRegex.test(password)) {
+    return res.status(400).json({
+      error: 'Password must be at least 8 characters long and contain a mix of uppercase letters (A-Z), lowercase letters (a-z), numbers (0-9), and special characters (e.g. Pass@1234).'
+    });
   }
 
   if (role && !VALID_ROLES.includes(role)) {

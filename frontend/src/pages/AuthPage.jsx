@@ -32,8 +32,21 @@ export default function AuthPage() {
   const [department, setDepartment] = useState('');
   const [phone, setPhone] = useState('');
 
+  const hasMinLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  const isPasswordValid = hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isRegister && !isPasswordValid) {
+      showToast('Password must be at least 8 characters and include uppercase, lowercase, numbers, and special symbols.', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -42,9 +55,9 @@ export default function AuthPage() {
           name,
           email,
           password,
-          role,
+          role: 'student',
           student_id: studentId,
-          department: role === 'staff' ? department : null,
+          department: null,
           phone
         });
         showToast('Registration successful! Welcome to CampusResolve.', 'success');
@@ -360,11 +373,49 @@ export default function AuthPage() {
               <input
                 type="password"
                 className="form-input"
-                placeholder="••••••••"
+                placeholder={isRegister ? "Create a secure password (e.g. Campus@2026)" : "••••••••"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+
+              {isRegister && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '12px',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}>
+                  <div style={{ fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    Password Security Requirements:
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasMinLength ? '#10b981' : 'var(--text-muted)' }}>
+                    <span>{hasMinLength ? '✓' : '○'}</span>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasUppercase ? '#10b981' : 'var(--text-muted)' }}>
+                    <span>{hasUppercase ? '✓' : '○'}</span>
+                    <span>At least one uppercase letter (A-Z)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasLowercase ? '#10b981' : 'var(--text-muted)' }}>
+                    <span>{hasLowercase ? '✓' : '○'}</span>
+                    <span>At least one lowercase letter (a-z)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasNumber ? '#10b981' : 'var(--text-muted)' }}>
+                    <span>{hasNumber ? '✓' : '○'}</span>
+                    <span>At least one number (0-9)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasSpecial ? '#10b981' : 'var(--text-muted)' }}>
+                    <span>{hasSpecial ? '✓' : '○'}</span>
+                    <span>At least one special symbol (!@#$%...)</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button

@@ -244,25 +244,38 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
                 {user?.role === 'admin' ? 'Administrator' : (user?.role === 'staff' ? `${user?.department || 'Staff'}` : 'Student')}
               </span>
             </div>
-
-            <button
-              onClick={logout}
-              title="Logout"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                marginLeft: '4px',
-                display: 'flex',
-                alignItems: 'center'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-rose)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
-              <LogOut size={15} />
-            </button>
           </div>
+
+          {/* Prominent Log Out Button for All Users */}
+          <button
+            onClick={logout}
+            className="btn btn-sm"
+            title="Log out of your account"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--accent-rose)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              fontWeight: '700',
+              borderRadius: 'var(--radius-sm)',
+              padding: '8px 14px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#ef4444';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+              e.currentTarget.style.color = 'var(--accent-rose)';
+            }}
+          >
+            <LogOut size={15} />
+            <span>Log Out</span>
+          </button>
         </div>
       </div>
     </header>
