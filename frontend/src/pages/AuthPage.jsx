@@ -294,58 +294,39 @@ export default function AuthPage() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">
-                    <GraduationCap size={14} /> Account Role
-                  </label>
-                  <select
-                    className="form-select"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                  >
-                    <option value="student">Student (Submit & Track Complaints)</option>
-                    <option value="staff">Department Staff (Resolve Assigned Tickets)</option>
-                    <option value="admin">Campus Administrator / Dean</option>
-                  </select>
+                <div style={{
+                  padding: '10px 14px',
+                  backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.8rem',
+                  color: 'var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '16px'
+                }}>
+                  <ShieldCheck size={16} />
+                  <span>Student Registration Portal. Faculty & Administrative accounts are provisioned by the Dean's Office.</span>
                 </div>
 
-                {role === 'student' && (
-                  <div className="form-group">
-                    <label className="form-label">Student ID / Roll Number</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. CS2024-055"
-                      value={studentId}
-                      onChange={(e) => setStudentId(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                {role === 'staff' && (
-                  <div className="form-group">
-                    <label className="form-label">Assigned Department</label>
-                    <select
-                      className="form-select"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Select Department --</option>
-                      <option value="Wi-Fi & IT">Wi-Fi & IT Operations</option>
-                      <option value="Hostel Affairs">Hostel Affairs & Wardens</option>
-                      <option value="Maintenance & Infrastructure">Maintenance & Infrastructure</option>
-                      <option value="Electrical & Plumbing">Electrical & Plumbing</option>
-                      <option value="Academics">Academics & Classrooms</option>
-                      <option value="Canteen & Mess">Canteen & Mess Affairs</option>
-                      <option value="Transport">Campus Transport</option>
-                    </select>
-                  </div>
-                )}
+                <div className="form-group">
+                  <label className="form-label">
+                    <GraduationCap size={14} /> Student Roll Number / College ID
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. CS2024-042 or 22CS089"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    required
+                  />
+                </div>
 
                 <div className="form-group">
                   <label className="form-label">
-                    <Phone size={14} /> Phone Number (Optional)
+                    <Phone size={14} /> Contact Phone Number (Optional)
                   </label>
                   <input
                     type="tel"

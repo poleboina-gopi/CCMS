@@ -8,13 +8,13 @@ const { logAuditEvent } = require('../middleware/auditLogger');
 
 const router = express.Router();
 
-// Register new user (with rate limiting and strict validation)
+// Register new student account (Public signup is strictly limited to Students)
 router.post('/register', authLimiter, validateRegister, async (req, res) => {
   try {
-    const { name, email, password, role = 'student', student_id, phone, department } = req.body;
+    const { name, email, password, student_id, phone } = req.body;
 
-    const validRoles = ['student', 'admin', 'staff'];
-    const assignedRole = validRoles.includes(role) ? role : 'student';
+    // Security Enforcement: All public self-registrations are strictly 'student'
+    const assignedRole = 'student';
 
     // Check if user exists
     const existing = await User.findOne({ email: email.toLowerCase() });
@@ -36,7 +36,7 @@ router.post('/register', authLimiter, validateRegister, async (req, res) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: assignedRole,
-      department: department || null,
+      department: null,
       student_id: student_id || null,
       phone: phone || null
     });
@@ -45,8 +45,8 @@ router.post('/register', authLimiter, validateRegister, async (req, res) => {
       id: newUser._id.toString(),
       name: newUser.name,
       email: newUser.email,
-      role: newUser.role,
-      department: newUser.department,
+      role: assignedRole,
+      department: null,
       student_id: newUser.student_id,
       phone: newUser.phone
     };
@@ -54,20 +54,75 @@ router.post('/register', authLimiter, validateRegister, async (req, res) => {
     logAuditEvent({
       userId: newUser._id,
       userEmail: email,
-      action: 'REGISTER_SUCCESS',
+      action: 'REGISTER_STUDENT_SUCCESS',
       ipAddress: req.ip,
-      details: { role: assignedRole, department }
+      details: { role: assignedRole }
     });
 
     const token = generateToken(user);
     res.status(201).json({
-      message: 'Account registered successfully.',
+      message: 'Student account registered successfully.',
       user,
       token
     });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Failed to register account. Please try again.' });
+  }
+});
+
+// Admin-only endpoint: Dean Sir creates new faculty / staff officer accounts
+router.post('/create-staff', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access forbidden: Only Dean / Admin can create faculty staff accounts.' });
+    }
+
+    const { name, email, password, department, staff_id, phone, role = 'staff' } = req.body;
+
+    if (!name || !email || !password || !department) {
+      return res.status(400).json({ error: 'Name, email, password, and department are required.' });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newStaff = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      role: role === 'admin' ? 'admin' : 'staff',
+      department,
+      student_id: staff_id || null,
+      phone: phone || null
+    });
+
+    logAuditEvent({
+      userId: req.user.id || req.user._id,
+      userEmail: req.user.email,
+      action: 'FACULTY_ACCOUNT_CREATED',
+      ipAddress: req.ip,
+      details: { createdUser: email, department, role }
+    });
+
+    res.status(201).json({
+      message: `Faculty account for ${name} (${department}) created successfully.`,
+      user: {
+        id: newStaff._id.toString(),
+        name: newStaff.name,
+        email: newStaff.email,
+        role: newStaff.role,
+        department: newStaff.department
+      }
+    });
+  } catch (err) {
+    console.error('Create staff error:', err);
+    res.status(500).json({ error: 'Failed to create faculty account.' });
   }
 });
 
