@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 export const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -6,16 +6,29 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('ccms_user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem('ccms_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
   });
   const [token, setToken] = useState(() => localStorage.getItem('ccms_token') || null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('ccms_user');
+    localStorage.removeItem('ccms_token');
+  }, []);
+
   useEffect(() => {
+    let isMounted = true;
+
     async function verifySession() {
       if (!token) {
-        setLoading(false);
+        if (isMounted) setLoading(false);
         return;
       }
       try {
@@ -26,8 +39,10 @@ export function AuthProvider({ children }) {
         });
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
-          localStorage.setItem('ccms_user', JSON.stringify(data.user));
+          if (isMounted) {
+            setUser(data.user);
+            localStorage.setItem('ccms_user', JSON.stringify(data.user));
+          }
         } else {
           // Expired or invalid token
           logout();
@@ -35,14 +50,18 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.error('Session verify error:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     verifySession();
-  }, [token]);
 
-  const login = async (email, password) => {
+    return () => {
+      isMounted = false;
+    };
+  }, [token, logout]);
+
+  const login = useCallback(async (email, password) => {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -59,9 +78,9 @@ export function AuthProvider({ children }) {
     localStorage.setItem('ccms_user', JSON.stringify(data.user));
     localStorage.setItem('ccms_token', data.token);
     return data.user;
-  };
+  }, []);
 
-  const register = async (formData) => {
+  const register = useCallback(async (formData) => {
     const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -78,17 +97,10 @@ export function AuthProvider({ children }) {
     localStorage.setItem('ccms_user', JSON.stringify(data.user));
     localStorage.setItem('ccms_token', data.token);
     return data.user;
-  };
+  }, []);
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('ccms_user');
-    localStorage.removeItem('ccms_token');
-  };
-
-  // Helper fetch with auth headers
-  const authFetch = async (url, options = {}) => {
+  // Optimized memoized helper fetch with auth headers
+  const authFetch = useCallback(async (url, options = {}) => {
     const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
     const headers = {
       ...(options.headers || {}),
@@ -108,22 +120,24 @@ export function AuthProvider({ children }) {
       throw new Error('Session expired. Please log in again.');
     }
     return res;
-  };
+  }, [token, logout]);
+
+  const value = useMemo(() => ({
+    user,
+    token,
+    loading,
+    login,
+    register,
+    logout,
+    authFetch,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
+    isStaff: user?.role === 'staff',
+    isStudent: user?.role === 'student'
+  }), [user, token, loading, login, register, logout, authFetch]);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      token,
-      loading,
-      login,
-      register,
-      logout,
-      authFetch,
-      isAuthenticated: !!user,
-      isAdmin: user?.role === 'admin',
-      isStaff: user?.role === 'staff',
-      isStudent: user?.role === 'student'
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

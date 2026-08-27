@@ -30,10 +30,19 @@ export default function AdminManagementPage({ onSelectComplaint }) {
   
   // Filters
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [deptFilter, setDeptFilter] = useState('all');
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Selected for Assign Modal
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -47,7 +56,7 @@ export default function AdminManagementPage({ onSelectComplaint }) {
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
       if (deptFilter !== 'all') params.append('department', deptFilter);
-      if (search.trim()) params.append('search', search.trim());
+      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
       params.append('limit', '200');
 
       const res = await authFetch(`/api/complaints?${params.toString()}`);
@@ -60,7 +69,7 @@ export default function AdminManagementPage({ onSelectComplaint }) {
     } finally {
       setLoading(false);
     }
-  }, [authFetch, statusFilter, categoryFilter, priorityFilter, deptFilter, search]);
+  }, [authFetch, statusFilter, categoryFilter, priorityFilter, deptFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchComplaints();

@@ -18,10 +18,19 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [kpis, setKpis] = useState({ total: 0, active: 0, inProgress: 0, resolved: 0 });
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   const fetchStudentData = useCallback(async () => {
     setLoading(true);
@@ -31,7 +40,7 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
-      if (search.trim()) params.append('search', search.trim());
+      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
 
       const [complaintsRes, analyticsRes] = await Promise.all([
         authFetch(`/api/complaints?${params.toString()}`),
@@ -59,7 +68,7 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
     } finally {
       setLoading(false);
     }
-  }, [authFetch, statusFilter, categoryFilter, priorityFilter, search]);
+  }, [authFetch, statusFilter, categoryFilter, priorityFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchStudentData();

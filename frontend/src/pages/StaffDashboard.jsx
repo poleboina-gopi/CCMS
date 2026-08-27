@@ -27,6 +27,15 @@ export default function StaffDashboard({ onSelectComplaint }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
   // Quick Resolve modal state
   const [resolveTarget, setResolveTarget] = useState(null);
@@ -40,7 +49,7 @@ export default function StaffDashboard({ onSelectComplaint }) {
       if (scope) params.append('scope', scope);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
-      if (search.trim()) params.append('search', search.trim());
+      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
 
       const res = await authFetch(`/api/complaints?${params.toString()}`);
       if (res.ok) {
@@ -52,7 +61,7 @@ export default function StaffDashboard({ onSelectComplaint }) {
     } finally {
       setLoading(false);
     }
-  }, [authFetch, scope, statusFilter, priorityFilter, search]);
+  }, [authFetch, scope, statusFilter, priorityFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchStaffData();

@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const NotificationContext = createContext();
 
 export function NotificationProvider({ children }) {
-  const { user, authFetch, isAuthenticated } = useAuth();
+  const { authFetch, isAuthenticated } = useAuth();
   const [toasts, setToasts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -16,15 +16,16 @@ export function NotificationProvider({ children }) {
 
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4500);
+    }, 4000);
   }, []);
 
-  const removeToast = (id) => {
+  const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) return;
+    if (typeof document !== 'undefined' && document.hidden) return; // Skip polling if user switched tabs
     try {
       const res = await authFetch('/api/notifications');
       if (res.ok) {
@@ -32,7 +33,7 @@ export function NotificationProvider({ children }) {
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
       }
-    } catch (err) {
+    } catch {
       // Quietly ignore background poll error
     }
   }, [isAuthenticated, authFetch]);
@@ -40,7 +41,7 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 20000); // poll every 20s
+      const interval = setInterval(fetchNotifications, 30000); // Smart 30s background poll
       return () => clearInterval(interval);
     } else {
       setNotifications([]);
@@ -48,7 +49,7 @@ export function NotificationProvider({ children }) {
     }
   }, [isAuthenticated, fetchNotifications]);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       await authFetch('/api/notifications/read-all', { method: 'PUT' });
       setUnreadCount(0);
@@ -56,9 +57,9 @@ export function NotificationProvider({ children }) {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [authFetch]);
 
-  const markAsRead = async (id) => {
+  const markAsRead = useCallback(async (id) => {
     try {
       await authFetch(`/api/notifications/${id}/read`, { method: 'PUT' });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
@@ -66,18 +67,20 @@ export function NotificationProvider({ children }) {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [authFetch]);
+
+  const value = useMemo(() => ({
+    toasts,
+    showToast,
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead
+  }), [toasts, showToast, notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead]);
 
   return (
-    <NotificationContext.Provider value={{
-      toasts,
-      showToast,
-      notifications,
-      unreadCount,
-      fetchNotifications,
-      markAsRead,
-      markAllAsRead
-    }}>
+    <NotificationContext.Provider value={value}>
       {children}
 
       {/* Render Toast Notifications */}
