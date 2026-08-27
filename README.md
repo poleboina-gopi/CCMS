@@ -69,28 +69,15 @@ In traditional collegiate environments, grievance redressal and campus maintenan
 
 ## 📸 5. Screenshots
 
-### 🖥️ Application Screen Previews
+### 📊 Campus Operations Analytics & Dean Administrator Dashboard
+![Campus Operations Analytics & Administrator Dashboard](screenshots/admin_dashboard.png)
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 🏛️ CampusResolve                         [🔔 Alerts (2)]  [Dr. Verma (Admin)]│
-├─────────────────────────────────────────────────────────────────────────────┤
-│  📊 TOTAL COMPLAINTS: 12   ⏳ PENDING: 3   🔧 ACTIVE: 4   ⭐ SATISFACTION: 4.9/5 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  [ Category Distribution ]             [ Department Workload Breakdown ]    │
-│  ████████ Wi-Fi & IT (45%)             • IT & Wi-Fi: 4 Active Orders        │
-│  █████ Hostel Affairs (30%)            • Electrical & Plumbing: 2 Active    │
-│  ███ Electrical (25%)                  • Maintenance: 1 Active              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  🚨 Urgent Queue: #CCMS-2026-0001 - Lab 3 Access Point Offline [Critical]   │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Key Application Workflows:
-1. **Student Complaint Submission Wizard**: Step-by-step submission with image dropzone and keyword hazard detection.
-2. **Interactive Ticket Details & Timeline**: Chronological progress stepper, photo evidence modal, and technician chat box.
-3. **Admin KPI & Analytics Suite**: Real-time visual metrics, priority distribution, and security audit log table.
-4. **Resolution Feedback Modal**: Interactive 5-star rating system with department feedback remarks.
+#### Key Application Interfaces & Workflows:
+1. **Dean & Admin Operations Suite**: Real-time KPI telemetry, complaints by category, lifecycle resolution rate, CSV export, and faculty assignment.
+2. **Student Complaint Submission Wizard**: Category selector, precise campus location, photo attachments, and AI urgency detection.
+3. **Interactive Ticket Details & Timeline**: Chronological 6-stage lifecycle stepper and live discussion thread between student and squad lead.
+4. **Department Squad Task Queue**: Filtered work orders for IT, Hostel, Maintenance, and Electrical officers.
+5. **Resolution 5-Star Feedback Modal**: Student satisfaction ratings and comments upon grievance resolution.
 
 ---
 
