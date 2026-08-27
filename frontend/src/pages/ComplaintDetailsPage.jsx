@@ -156,8 +156,9 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
     if (!window.confirm('Are you sure you want to permanently delete this complaint ticket?')) return;
     try {
       const res = await authFetch(`/api/complaints/${complaintId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete complaint.');
-      showToast('Complaint removed.', 'info');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete complaint.');
+      showToast(data.message || 'Complaint removed successfully.', 'info');
       onNavigateBack();
     } catch (err) {
       showToast(err.message, 'error');

@@ -750,14 +750,32 @@ router.post('/:id/feedback', requireAuth, validateFeedbackInput, async (req, res
   }
 });
 
-// 9. DELETE /api/complaints/:id - Delete complaint (Admin only)
-router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+// 9. DELETE /api/complaints/:id - Delete complaint (Admin or Student Owner)
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const complaint = await Complaint.findById(id);
+    const currentUserId = (req.user.id || req.user._id).toString();
+    const userRole = req.user.role;
+
+    // Support lookup by MongoDB _id or ticket_number
+    let complaint = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      complaint = await Complaint.findById(id);
+    }
+    if (!complaint) {
+      complaint = await Complaint.findOne({ ticket_number: id });
+    }
 
     if (!complaint) {
       return res.status(404).json({ error: 'Complaint not found.' });
+    }
+
+    const isOwner = complaint.student_id && complaint.student_id.toString() === currentUserId;
+    const isAdmin = userRole === 'admin';
+
+    // Only Dean / Admin or the student creator can delete
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'Access denied: You can only delete complaints that you created.' });
     }
 
     await Comment.deleteMany({ complaint_id: complaint._id });
@@ -765,7 +783,6 @@ router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
     await Notification.deleteMany({ complaint_id: complaint._id });
     await Complaint.findByIdAndDelete(complaint._id);
 
-    const currentUserId = req.user.id || req.user._id;
     await logAuditEvent({
       userId: currentUserId,
       userEmail: req.user.email,
@@ -773,7 +790,7 @@ router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
       entityType: 'Complaint',
       entityId: complaint._id,
       ipAddress: req.ip,
-      details: { ticketNumber: complaint.ticket_number, title: complaint.title }
+      details: { ticketNumber: complaint.ticket_number, title: complaint.title, deletedBy: userRole }
     });
 
     res.json({ message: `Complaint #${complaint.ticket_number} deleted successfully.` });
