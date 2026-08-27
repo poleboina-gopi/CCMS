@@ -38,6 +38,8 @@ const categories = [
   { id: 'Canteen & Mess', label: 'Canteen, Mess & Food Quality' },
   { id: 'Transport', label: 'Campus Bus & Transportation' },
   { id: 'Library', label: 'Library & Study Zones' },
+  { id: 'Sports & Gymnasium', label: 'Sports Grounds & Gym' },
+  { id: 'Security & Discipline', label: 'Campus Security & Safety' },
   { id: 'Other', label: 'Other Grievance / Inquiries' }
 ];
 

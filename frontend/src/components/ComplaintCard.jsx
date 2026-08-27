@@ -15,13 +15,19 @@ import {
 const categoryColors = {
   'Wi-Fi & IT': '#06b6d4',
   'Hostel Affairs': '#8b5cf6',
+  'Hostel': '#8b5cf6',
   'Maintenance & Infrastructure': '#f59e0b',
   'Infrastructure': '#f59e0b',
+  'Infrastructure & Maintenance': '#f59e0b',
   'Electrical & Plumbing': '#f43f5e',
   'Academics': '#6366f1',
   'Canteen & Mess': '#10b981',
+  'Mess / Canteen': '#10b981',
   'Transport': '#ec4899',
+  'Transportation': '#ec4899',
   'Library': '#3b82f6',
+  'Sports & Gymnasium': '#14b8a6',
+  'Security & Discipline': '#e11d48',
   'Other': '#64748b'
 };
 

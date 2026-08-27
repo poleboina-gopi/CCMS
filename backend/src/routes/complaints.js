@@ -289,16 +289,21 @@ router.post('/', requireAuth, complaintLimiter, upload.single('image'), validate
     } = req.body;
 
     const validCategories = [
-      'Hostel',
-      'Academics',
       'Wi-Fi & IT',
-      'Mess / Canteen',
+      'Hostel Affairs',
+      'Hostel',
+      'Maintenance & Infrastructure',
+      'Infrastructure',
       'Infrastructure & Maintenance',
       'Electrical & Plumbing',
-      'Security & Discipline',
+      'Academics',
+      'Canteen & Mess',
+      'Mess / Canteen',
+      'Transport',
+      'Transportation',
       'Library',
       'Sports & Gymnasium',
-      'Transportation',
+      'Security & Discipline',
       'Other'
     ];
 
@@ -310,16 +315,21 @@ router.post('/', requireAuth, complaintLimiter, upload.single('image'), validate
     const assignedPriority = validPriorities.includes(priority) ? priority : 'Medium';
 
     const categoryDepartmentMap = {
-      'Hostel': 'Hostel Affairs',
-      'Academics': 'Academic Cell',
       'Wi-Fi & IT': 'Wi-Fi & IT',
-      'Mess / Canteen': 'Canteen & Mess',
+      'Hostel Affairs': 'Hostel Affairs',
+      'Hostel': 'Hostel Affairs',
+      'Maintenance & Infrastructure': 'Maintenance & Infrastructure',
+      'Infrastructure': 'Maintenance & Infrastructure',
       'Infrastructure & Maintenance': 'Maintenance & Infrastructure',
       'Electrical & Plumbing': 'Electrical & Plumbing',
-      'Security & Discipline': 'Campus Security',
+      'Academics': 'Academic Cell',
+      'Canteen & Mess': 'Canteen & Mess',
+      'Mess / Canteen': 'Canteen & Mess',
+      'Transport': 'Transport Operations',
+      'Transportation': 'Transport Operations',
       'Library': 'Library Administration',
       'Sports & Gymnasium': 'Sports Cell',
-      'Transportation': 'Transport Operations',
+      'Security & Discipline': 'Campus Security',
       'Other': 'General Grievance Cell'
     };
 

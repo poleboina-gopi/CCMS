@@ -4,13 +4,19 @@ const { logAuditEvent } = require('./auditLogger');
 const VALID_CATEGORIES = [
   'Wi-Fi & IT',
   'Hostel Affairs',
+  'Hostel',
   'Maintenance & Infrastructure',
   'Infrastructure',
+  'Infrastructure & Maintenance',
   'Electrical & Plumbing',
   'Academics',
   'Canteen & Mess',
+  'Mess / Canteen',
   'Transport',
+  'Transportation',
   'Library',
+  'Sports & Gymnasium',
+  'Security & Discipline',
   'Other'
 ];
 
