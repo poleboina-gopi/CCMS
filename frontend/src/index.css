@@ -461,16 +461,74 @@ h1, h2, h3, h4, h5, h6 {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* Responsive Utilities */
+/* Responsive Mobile & Tablet Optimization */
+@media (max-width: 900px) {
+  nav {
+    overflow-x: auto;
+    max-width: 45vw;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .main-content {
-    padding: 16px 12px 40px;
+    padding: 14px 12px 50px;
   }
+
   .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
+
   .kpi-value {
-    font-size: 1.4rem;
+    font-size: 1.4rem !important;
+  }
+
+  /* Compact Responsive Header */
+  header > div {
+    padding: 0 12px !important;
+    gap: 8px !important;
+    height: 62px !important;
+  }
+
+  nav button span {
+    display: none; /* Keeps sleek icons on mobile screens */
+  }
+
+  nav button {
+    padding: 8px 10px !important;
+  }
+
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .toast {
+    font-size: 0.825rem;
+    padding: 10px 14px;
+  }
+
+  .glass-panel {
+    padding: 18px 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  h1 {
+    font-size: 1.35rem !important;
+  }
+
+  h2 {
+    font-size: 1.15rem !important;
   }
 }
