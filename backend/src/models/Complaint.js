@@ -70,6 +70,46 @@ const complaintSchema = new mongoose.Schema({
     default: null,
     trim: true
   },
+  // Enterprise Feature 1: Community Upvoting & "Me Too" System
+  upvotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  upvotes_count: {
+    type: Number,
+    default: 0,
+    index: true
+  },
+  // Enterprise Feature 2: Automated SLA Engine & Escalation Matrix
+  sla_hours: {
+    type: Number,
+    default: 48
+  },
+  sla_deadline: {
+    type: Date,
+    default: null,
+    index: true
+  },
+  is_escalated: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  escalated_at: {
+    type: Date,
+    default: null
+  },
+  // Enterprise Feature 5: AI Duplicate Detection & Master Ticket Merging
+  duplicate_of: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Complaint',
+    default: null,
+    index: true
+  },
+  duplicate_count: {
+    type: Number,
+    default: 0
+  },
   resolution_notes: {
     type: String,
     default: null

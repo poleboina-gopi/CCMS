@@ -1,0 +1,17 @@
+{
+  "short_name": "CampusResolve",
+  "name": "CampusResolve - College Complaint Management System",
+  "description": "Enterprise campus grievance management and maintenance ticketing platform",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait"
+}

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import AnalyticsCharts from '../components/AnalyticsCharts';
+import CampusHeatmap from '../components/CampusHeatmap';
+import StaffLeaderboard from '../components/StaffLeaderboard';
 import PriorityBadge from '../components/PriorityBadge';
 import StatusBadge from '../components/StatusBadge';
 import { 
@@ -191,6 +193,12 @@ export default function AdminDashboard({ onSelectComplaint, onNavigateManagement
 
       {/* Visual Charts */}
       <AnalyticsCharts analytics={analytics} />
+
+      {/* Enterprise Feature 6: Campus Facility Heatmap */}
+      <CampusHeatmap onSelectBuilding={() => onNavigateManagement()} />
+
+      {/* Enterprise Feature 6: Staff Performance Leaderboard */}
+      <StaffLeaderboard />
 
       {/* Urgent Issues Queue */}
       <div className="glass-panel" style={{ padding: '24px' }}>

@@ -158,6 +158,100 @@ router.get('/dashboard', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/analytics/heatmaps - Campus facility complaint density (Enterprise Feature 6)
+router.get('/heatmaps', requireAuth, async (req, res) => {
+  try {
+    const complaints = await Complaint.find({}).select('building room category status priority upvotes_count').lean();
+
+    const buildingMap = {};
+    complaints.forEach(c => {
+      const b = c.building || 'General Campus';
+      if (!buildingMap[b]) {
+        buildingMap[b] = {
+          building: b,
+          total: 0,
+          active: 0,
+          resolved: 0,
+          critical: 0,
+          categories: {}
+        };
+      }
+      buildingMap[b].total++;
+      if (['Resolved', 'Closed'].includes(c.status)) {
+        buildingMap[b].resolved++;
+      } else {
+        buildingMap[b].active++;
+      }
+      if (c.priority === 'Critical') {
+        buildingMap[b].critical++;
+      }
+      const cat = c.category || 'Other';
+      buildingMap[b].categories[cat] = (buildingMap[b].categories[cat] || 0) + 1;
+    });
+
+    const heatmaps = Object.values(buildingMap).sort((a, b) => b.total - a.total);
+    res.json({ heatmaps });
+  } catch (error) {
+    console.error('Heatmap error:', error);
+    res.status(500).json({ error: 'Failed to generate heatmap analytics.' });
+  }
+});
+
+// GET /api/analytics/leaderboard - Staff Performance Leaderboard & MTTR (Enterprise Feature 6)
+router.get('/leaderboard', requireAuth, async (req, res) => {
+  try {
+    const staffMembers = await User.find({ role: { $in: ['staff', 'admin'] } }).select('name email department role avatar').lean();
+    const resolvedComplaints = await Complaint.find({ status: { $in: ['Resolved', 'Closed'] } }).lean();
+    const feedbacks = await Feedback.find({}).lean();
+
+    const feedbackMap = {};
+    feedbacks.forEach(f => {
+      feedbackMap[f.complaint_id.toString()] = f.rating;
+    });
+
+    const leaderboard = staffMembers.map(staff => {
+      const assignedResolved = resolvedComplaints.filter(c => c.assigned_to && c.assigned_to.toString() === staff._id.toString());
+      
+      let totalResolutionHours = 0;
+      let validMttrCount = 0;
+      const ratings = [];
+
+      assignedResolved.forEach(c => {
+        if (c.resolved_at && c.created_at) {
+          const diffHours = (new Date(c.resolved_at) - new Date(c.created_at)) / (1000 * 3600);
+          if (diffHours >= 0) {
+            totalResolutionHours += diffHours;
+            validMttrCount++;
+          }
+        }
+        if (feedbackMap[c._id.toString()]) {
+          ratings.push(feedbackMap[c._id.toString()]);
+        }
+      });
+
+      const mttr = validMttrCount > 0 ? Number((totalResolutionHours / validMttrCount).toFixed(1)) : 0;
+      const avgRating = ratings.length > 0 ? Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)) : 5.0;
+
+      return {
+        id: staff._id.toString(),
+        name: staff.name,
+        email: staff.email,
+        department: staff.department || 'Administration',
+        role: staff.role,
+        resolved_count: assignedResolved.length,
+        mttr_hours: mttr,
+        avg_rating: avgRating,
+        total_ratings: ratings.length
+      };
+    }).sort((a, b) => b.resolved_count - a.resolved_count || b.avg_rating - a.avg_rating);
+
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error('Leaderboard error:', error);
+    res.status(500).json({ error: 'Failed to generate staff leaderboard.' });
+  }
+});
+
 // GET /api/analytics/audit-logs - View security and administrative event audit trails (Admin only)
 router.get('/audit-logs', requireAuth, requireRole(['admin']), async (req, res) => {
   try {

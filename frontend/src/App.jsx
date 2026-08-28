@@ -8,13 +8,20 @@ import ComplaintDetailsPage from './pages/ComplaintDetailsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminManagementPage from './pages/AdminManagementPage';
 import StaffDashboard from './pages/StaffDashboard';
+import QrGeneratorPage from './pages/QrGeneratorPage';
 import { Building2, Sparkles } from 'lucide-react';
 
 export default function App() {
   const { user, isAuthenticated, loading, isStudent, isAdmin, isStaff } = useAuth();
   
-  // Tab state
+  // Tab state with QR fast-fill URL parameter detection
   const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'submit-complaint' || params.get('building') || params.get('room')) {
+        return 'submit-complaint';
+      }
+    }
     return 'dashboard';
   });
 
@@ -132,6 +139,10 @@ export default function App() {
           <StaffDashboard
             onSelectComplaint={handleSelectComplaint}
           />
+        )}
+
+        {currentView === 'qr-generator' && (
+          <QrGeneratorPage />
         )}
       </main>
 

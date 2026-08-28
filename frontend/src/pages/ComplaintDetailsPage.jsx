@@ -3,6 +3,7 @@ import { useAuth, API_BASE, getMediaUrl } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
+import SlaCountdownBadge from '../components/SlaCountdownBadge';
 import TimelineTracker from '../components/TimelineTracker';
 import FeedbackModal from '../components/FeedbackModal';
 import AssignModal from '../components/AssignModal';
@@ -34,7 +35,9 @@ import {
   ExternalLink,
   Image as ImageIcon,
   X,
-  RefreshCw
+  RefreshCw,
+  ThumbsUp,
+  GitMerge
 } from 'lucide-react';
 
 export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
@@ -47,6 +50,11 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
   const [newComment, setNewComment] = useState('');
   const [isInternalComment, setIsInternalComment] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+
+  // Upvote state
+  const [upvotesCount, setUpvotesCount] = useState(0);
+  const [hasUpvoted, setHasUpvoted] = useState(false);
+  const [upvoting, setUpvoting] = useState(false);
 
   // Modals
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -84,7 +92,7 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeLightboxImage]);
 
-  const fetchDetails = useCallback(async () => {
+  const fetchDetails = useCallback(async (silent = false) => {
     try {
       const res = await authFetch(`/api/complaints/${complaintId}`);
       if (!res.ok) {
@@ -93,17 +101,58 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
       const data = await res.json();
       setComplaint(data.complaint);
       setComments(data.comments || []);
+      setUpvotesCount(data.complaint.upvotes_count || 0);
+      setHasUpvoted(data.complaint.has_upvoted || false);
     } catch (err) {
-      showToast(err.message, 'error');
-      onNavigateBack();
+      if (!silent) {
+        showToast(err.message, 'error');
+        onNavigateBack();
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [complaintId, authFetch, showToast, onNavigateBack]);
 
+  // Initial fetch and Real-Time Live Sync Polling (Enterprise Feature 4)
   useEffect(() => {
-    fetchDetails();
+    fetchDetails(false);
+    const syncInterval = setInterval(() => {
+      fetchDetails(true);
+    }, 6000); // Live sync every 6 seconds
+
+    return () => clearInterval(syncInterval);
   }, [fetchDetails]);
+
+  // Handle Upvote
+  const handleUpvote = async () => {
+    if (upvoting) return;
+    setUpvoting(true);
+
+    const prevCount = upvotesCount;
+    const prevStatus = hasUpvoted;
+    setUpvotesCount(prevStatus ? prevCount - 1 : prevCount + 1);
+    setHasUpvoted(!prevStatus);
+
+    try {
+      const res = await authFetch(`/api/complaints/${complaintId}/upvote`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUpvotesCount(data.upvotes_count);
+        setHasUpvoted(data.has_upvoted);
+        showToast(data.message, 'success');
+      } else {
+        setUpvotesCount(prevCount);
+        setHasUpvoted(prevStatus);
+      }
+    } catch (err) {
+      setUpvotesCount(prevCount);
+      setHasUpvoted(prevStatus);
+    } finally {
+      setUpvoting(false);
+    }
+  };
 
   // Handle Comment Submission
   const handleSendComment = async (e) => {
@@ -229,7 +278,7 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
           </button>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{
                 fontFamily: 'monospace',
                 fontWeight: '800',
@@ -248,16 +297,66 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
               }}>
                 {complaint.category}
               </span>
+
+              {/* SLA Target Badge */}
+              <SlaCountdownBadge
+                deadline={complaint.sla_deadline}
+                status={complaint.status}
+                isEscalated={complaint.is_escalated}
+                slaHours={complaint.sla_hours}
+                size="md"
+              />
+
+              {complaint.duplicate_count > 0 && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                  color: 'var(--primary)'
+                }}>
+                  <GitMerge size={13} />
+                  <span>+{complaint.duplicate_count} duplicate tickets linked</span>
+                </span>
+              )}
             </div>
 
-            <h1 style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '2px' }}>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: '800', marginTop: '4px' }}>
               {complaint.title}
             </h1>
           </div>
         </div>
 
-        {/* Status & Priority Indicators & Delete Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Status, Upvote & Priority Indicators */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Community Upvote Button */}
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={handleUpvote}
+            style={{
+              padding: '6px 14px',
+              fontSize: '0.825rem',
+              fontWeight: '700',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: hasUpvoted ? 'rgba(99, 102, 241, 0.2)' : 'var(--bg-card)',
+              color: hasUpvoted ? 'var(--primary)' : 'var(--text-primary)',
+              border: hasUpvoted ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+            title="Click to support/upvote this issue (+1)"
+          >
+            <ThumbsUp size={14} fill={hasUpvoted ? 'currentColor' : 'none'} />
+            <span>Me Too ({upvotesCount})</span>
+          </button>
+
           <PriorityBadge priority={complaint.priority} size="md" />
           <StatusBadge status={complaint.status} size="md" />
 

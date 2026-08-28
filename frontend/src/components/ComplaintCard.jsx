@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
-import { getMediaUrl } from '../context/AuthContext';
+import SlaCountdownBadge from './SlaCountdownBadge';
+import { getMediaUrl, useAuth } from '../context/AuthContext';
 import { 
   MapPin, 
   Calendar, 
@@ -11,7 +12,9 @@ import {
   Building, 
   Star,
   CheckCircle2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ThumbsUp,
+  GitMerge
 } from 'lucide-react';
 
 const categoryColors = {
@@ -34,6 +37,11 @@ const categoryColors = {
 };
 
 export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQuickStatus, userRole }) {
+  const { authFetch } = useAuth();
+  const [upvotesCount, setUpvotesCount] = useState(complaint.upvotes_count || 0);
+  const [hasUpvoted, setHasUpvoted] = useState(complaint.has_upvoted || false);
+  const [upvoting, setUpvoting] = useState(false);
+
   const categoryColor = categoryColors[complaint.category] || 'var(--primary)';
 
   const formattedDate = new Date(complaint.created_at).toLocaleDateString('en-US', {
@@ -41,6 +49,38 @@ export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQu
     day: 'numeric',
     year: 'numeric'
   });
+
+  const handleUpvote = async (e) => {
+    e.stopPropagation();
+    if (upvoting) return;
+    setUpvoting(true);
+
+    // Optimistic UI update
+    const prevCount = upvotesCount;
+    const prevStatus = hasUpvoted;
+    setUpvotesCount(prevStatus ? prevCount - 1 : prevCount + 1);
+    setHasUpvoted(!prevStatus);
+
+    try {
+      const res = await authFetch(`/api/complaints/${complaint.id}/upvote`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUpvotesCount(data.upvotes_count);
+        setHasUpvoted(data.has_upvoted);
+      } else {
+        // Rollback
+        setUpvotesCount(prevCount);
+        setHasUpvoted(prevStatus);
+      }
+    } catch (err) {
+      setUpvotesCount(prevCount);
+      setHasUpvoted(prevStatus);
+    } finally {
+      setUpvoting(false);
+    }
+  };
 
   return (
     <div 
@@ -66,7 +106,7 @@ export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQu
           gap: '8px',
           flexWrap: 'wrap'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: '0.75rem',
               fontWeight: '800',
@@ -89,9 +129,26 @@ export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQu
             }}>
               {complaint.category}
             </span>
+
+            {complaint.duplicate_count > 0 && (
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 6px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                color: 'var(--primary)'
+              }}>
+                <GitMerge size={11} />
+                <span>+{complaint.duplicate_count} merged</span>
+              </span>
+            )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <PriorityBadge priority={complaint.priority} size="sm" />
             <StatusBadge status={complaint.status} size="sm" />
           </div>
@@ -179,6 +236,40 @@ export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQu
 
       {/* Card Footer */}
       <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+          {/* SLA Countdown Timer */}
+          <SlaCountdownBadge
+            deadline={complaint.sla_deadline}
+            status={complaint.status}
+            isEscalated={complaint.is_escalated}
+            slaHours={complaint.sla_hours}
+            size="sm"
+          />
+
+          {/* Upvote / Me Too Button */}
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={handleUpvote}
+            style={{
+              padding: '2px 9px',
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: hasUpvoted ? 'rgba(99, 102, 241, 0.18)' : 'var(--bg-tertiary)',
+              color: hasUpvoted ? 'var(--primary)' : 'var(--text-muted)',
+              border: hasUpvoted ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            title="Click to upvote this issue (+1)"
+          >
+            <ThumbsUp size={12} fill={hasUpvoted ? 'currentColor' : 'none'} />
+            <span>Me Too ({upvotesCount})</span>
+          </button>
+        </div>
+
         {complaint.feedback_rating && (
           <div style={{
             display: 'flex',
@@ -201,7 +292,7 @@ export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQu
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          paddingTop: '12px',
+          paddingTop: '10px',
           borderTop: '1px solid var(--border-color)',
           fontSize: '0.775rem',
           color: 'var(--text-muted)'

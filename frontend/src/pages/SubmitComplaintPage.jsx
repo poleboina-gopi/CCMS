@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import { 
@@ -11,15 +11,19 @@ import {
   Sparkles, 
   ArrowLeft,
   CheckCircle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  QrCode,
+  ThumbsUp,
+  ExternalLink
 } from 'lucide-react';
 
 const buildings = [
+  'Hostel Block A',
+  'Hostel Block B',
+  'Hostel Block C',
   'Main Academic Block',
   'CS & IT Block C',
   'Electronics Block D',
-  'Hostel Block A (Boys)',
-  'Hostel Block B (Boys)',
   'Hostel Block 4 (Girls)',
   'Central Campus Library',
   'Dining Hall 1 (North)',
@@ -57,6 +61,53 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
   const [filePreview, setFilePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [aiPriorityReason, setAiPriorityReason] = useState('');
+  const [qrAutofilled, setQrAutofilled] = useState(false);
+  const [potentialDuplicates, setPotentialDuplicates] = useState([]);
+
+  // 1. QR Code Fast-Fill detection on mount (Enterprise Feature 3)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlBuilding = params.get('building');
+      const urlRoom = params.get('room');
+      const urlCategory = params.get('category');
+
+      if (urlBuilding || urlRoom || urlCategory) {
+        if (urlBuilding) setBuilding(urlBuilding);
+        if (urlRoom) setRoom(urlRoom);
+        if (urlCategory) setCategory(urlCategory);
+        setQrAutofilled(true);
+        showToast('📍 QR Code Fast-Fill Activated: Facility details pre-filled!', 'info');
+      }
+    }
+  }, [showToast]);
+
+  // 2. AI Duplicate Ticket Detection (Enterprise Feature 5)
+  useEffect(() => {
+    if (!room || room.length < 2) {
+      setPotentialDuplicates([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const queryParams = new URLSearchParams({
+          building,
+          room: room.trim(),
+          category
+        });
+        const res = await authFetch(`/api/complaints/check/duplicate?${queryParams}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPotentialDuplicates(data.duplicates || []);
+        }
+      } catch (err) {
+        console.error('Duplicate check error:', err);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [building, room, category, authFetch]);
 
   // Smart priority detection based on complaint text
   const handleDescriptionChange = (text) => {
@@ -154,6 +205,26 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      {/* QR Autofill Banner */}
+      {qrAutofilled && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '12px 16px',
+          backgroundColor: 'rgba(99, 102, 241, 0.12)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '20px',
+          color: 'var(--primary)'
+        }}>
+          <QrCode size={18} />
+          <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
+            QR Code Scanned: <strong>{building}</strong> ({room || 'Select Room'}) pre-selected!
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
         <button 
@@ -170,6 +241,51 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
           </p>
         </div>
       </div>
+
+      {/* AI Duplicate Ticket Helper Alert */}
+      {potentialDuplicates.length > 0 && (
+        <div style={{
+          padding: '16px 20px',
+          backgroundColor: 'rgba(251, 191, 36, 0.12)',
+          border: '1px solid rgba(251, 191, 36, 0.35)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: '24px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--accent-amber)', fontWeight: '700', fontSize: '0.925rem' }}>
+            <Sparkles size={16} />
+            <span>AI Duplicate Alert: Existing open ticket(s) found in {building} - {room}:</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {potentialDuplicates.map(dup => (
+              <div
+                key={dup.ticket_number}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: 'var(--bg-card)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <div>
+                  <span style={{ fontWeight: '700', color: 'var(--primary)', marginRight: '8px' }}>
+                    #{dup.ticket_number}
+                  </span>
+                  <span>{dup.title}</span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Status: {dup.status} ({dup.upvotes_count || 1} upvotes)
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '8px' }}>
+            Tip: You can upvote an existing ticket from your dashboard so technicians prioritize it, or proceed below to submit a new ticket.
+          </p>
+        </div>
+      )}
 
       <div className="glass-panel" style={{ padding: 'clamp(18px, 4vw, 32px)' }}>
         <form onSubmit={handleSubmit}>

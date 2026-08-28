@@ -123,6 +123,13 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
                 <PlusCircle size={16} />
                 <span>Submit Complaint</span>
               </button>
+              <button
+                className={`btn ${activeTab === 'qr-generator' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                onClick={() => handleTabChange('qr-generator')}
+              >
+                <QrCode size={16} />
+                <span>Room QR</span>
+              </button>
             </>
           )}
 
@@ -143,6 +150,13 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
                 <span>Complaint Manager</span>
               </button>
               <button
+                className={`btn ${activeTab === 'qr-generator' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                onClick={() => handleTabChange('qr-generator')}
+              >
+                <QrCode size={16} />
+                <span>Asset QR Stickers</span>
+              </button>
+              <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                 onClick={() => handleTabChange('submit-complaint')}
               >
@@ -160,6 +174,13 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
               >
                 <Wrench size={16} />
                 <span>Department Tasks</span>
+              </button>
+              <button
+                className={`btn ${activeTab === 'qr-generator' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                onClick={() => handleTabChange('qr-generator')}
+              >
+                <QrCode size={16} />
+                <span>Room QR</span>
               </button>
               <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
@@ -356,6 +377,13 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
                 <PlusCircle size={18} />
                 <span>Submit Complaint</span>
               </button>
+              <button
+                className={`btn ${activeTab === 'qr-generator' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('qr-generator')}
+              >
+                <QrCode size={18} />
+                <span>Room QR Generator</span>
+              </button>
             </>
           )}
 
@@ -376,6 +404,13 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
                 <span>Complaint Manager</span>
               </button>
               <button
+                className={`btn ${activeTab === 'qr-generator' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('qr-generator')}
+              >
+                <QrCode size={18} />
+                <span>Asset QR Stickers</span>
+              </button>
+              <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => handleTabChange('submit-complaint')}
               >
@@ -393,6 +428,13 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
               >
                 <Wrench size={18} />
                 <span>Department Tasks</span>
+              </button>
+              <button
+                className={`btn ${activeTab === 'qr-generator' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('qr-generator')}
+              >
+                <QrCode size={18} />
+                <span>Room QR Generator</span>
               </button>
               <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'}`}

@@ -96,13 +96,53 @@ async function sendNotification(userId, title, message, complaintId) {
   }
 }
 
-// Format complaint document with student/assignee/feedback details
-function formatComplaint(doc, commentCount = 0, feedback = null) {
+// Calculate SLA hours & deadline based on priority (Enterprise Feature 2)
+function calculateSla(priority) {
+  switch (priority) {
+    case 'Critical': return { hours: 4, deadline: new Date(Date.now() + 4 * 3600 * 1000) };
+    case 'High': return { hours: 12, deadline: new Date(Date.now() + 12 * 3600 * 1000) };
+    case 'Medium': return { hours: 48, deadline: new Date(Date.now() + 48 * 3600 * 1000) };
+    case 'Low': return { hours: 72, deadline: new Date(Date.now() + 72 * 3600 * 1000) };
+    default: return { hours: 48, deadline: new Date(Date.now() + 48 * 3600 * 1000) };
+  }
+}
+
+// Background SLA auto-escalation checker
+async function checkAndAutoEscalate() {
+  try {
+    const overdueTickets = await Complaint.find({
+      status: { $nin: ['Resolved', 'Closed'] },
+      is_escalated: false,
+      sla_deadline: { $ne: null, $lt: new Date() }
+    });
+
+    for (const ticket of overdueTickets) {
+      ticket.is_escalated = true;
+      ticket.escalated_at = new Date();
+      await ticket.save();
+
+      await Comment.create({
+        complaint_id: ticket._id,
+        user_id: ticket.student_id,
+        message: `⚠️ [AUTOMATED SLA ESCALATION] Ticket has exceeded its ${ticket.sla_hours || 48}h target resolution deadline. Escalated to Campus Administration.`,
+        is_internal: false
+      });
+    }
+  } catch (err) {
+    console.error('Auto-escalation checker error:', err);
+  }
+}
+
+// Format complaint document with student/assignee/feedback/upvote/SLA details
+function formatComplaint(doc, commentCount = 0, feedback = null, currentUserId = null) {
   const c = doc.toObject ? doc.toObject() : doc;
   const idStr = (c._id || c.id).toString();
 
   const student = c.student_id && typeof c.student_id === 'object' ? c.student_id : null;
   const assigned = c.assigned_to && typeof c.assigned_to === 'object' ? c.assigned_to : null;
+
+  const upvotesArr = Array.isArray(c.upvotes) ? c.upvotes.map(u => u.toString()) : [];
+  const hasUpvoted = currentUserId ? upvotesArr.includes(currentUserId.toString()) : false;
 
   return {
     ...c,
@@ -119,6 +159,14 @@ function formatComplaint(doc, commentCount = 0, feedback = null) {
     image_url: c.image_url || null,
     resolution_image: c.resolution_image || null,
     resolution_notes: c.resolution_notes || null,
+    upvotes_count: c.upvotes_count || upvotesArr.length || 0,
+    has_upvoted: hasUpvoted,
+    sla_hours: c.sla_hours || 48,
+    sla_deadline: c.sla_deadline || null,
+    is_escalated: !!c.is_escalated,
+    escalated_at: c.escalated_at || null,
+    duplicate_of: c.duplicate_of ? c.duplicate_of.toString() : null,
+    duplicate_count: c.duplicate_count || 0,
     comments_count: commentCount,
     feedback_rating: feedback ? feedback.rating : (c.feedback_rating || null),
     feedback_comments: feedback ? feedback.comments : (c.feedback_comments || null)
@@ -202,9 +250,12 @@ router.get('/', requireAuth, async (req, res) => {
       feedbackMap[f.complaint_id.toString()] = f;
     });
 
+    // Check for SLA escalations in background
+    checkAndAutoEscalate();
+
     const formattedComplaints = complaints.map(c => {
       const fb = feedbackMap[c._id.toString()] || null;
-      return formatComplaint(c, 0, fb);
+      return formatComplaint(c, 0, fb, userId);
     });
 
     res.json({
@@ -373,6 +424,7 @@ router.post('/', requireAuth, complaintLimiter, handleImageUpload('image'), vali
     }
 
     const currentUserId = req.user.id || req.user._id;
+    const { hours: slaHours, deadline: slaDeadline } = calculateSla(assignedPriority);
 
     const newComplaint = await Complaint.create({
       ticket_number: ticketNumber,
@@ -386,7 +438,11 @@ router.post('/', requireAuth, complaintLimiter, handleImageUpload('image'), vali
       status: 'Submitted',
       priority: assignedPriority,
       student_id: currentUserId,
-      department: autoDepartment
+      department: autoDepartment,
+      sla_hours: slaHours,
+      sla_deadline: slaDeadline,
+      upvotes: [currentUserId],
+      upvotes_count: 1
     });
 
     // Create initial tracking comment
@@ -842,6 +898,133 @@ router.delete('/:id', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Delete complaint error:', error);
     res.status(500).json({ error: 'Failed to delete complaint.' });
+  }
+});
+
+// 10. POST /api/complaints/:id/upvote - Community Upvoting ("Me Too" Button) (Enterprise Feature 1)
+router.post('/:id/upvote', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user.id || req.user._id;
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ error: 'Complaint not found.' });
+    }
+
+    const upvoteIndex = complaint.upvotes.findIndex(u => u.toString() === currentUserId.toString());
+    let hasUpvoted = false;
+
+    if (upvoteIndex > -1) {
+      // Remove upvote
+      complaint.upvotes.splice(upvoteIndex, 1);
+      complaint.upvotes_count = Math.max(0, complaint.upvotes.length);
+      hasUpvoted = false;
+    } else {
+      // Add upvote
+      complaint.upvotes.push(currentUserId);
+      complaint.upvotes_count = complaint.upvotes.length;
+      hasUpvoted = true;
+
+      // Notify ticket owner if different user
+      if (complaint.student_id.toString() !== currentUserId.toString()) {
+        await sendNotification(
+          complaint.student_id,
+          `+1 Upvote on #${complaint.ticket_number}`,
+          `${req.user.name} also reported facing this issue (+1 upvote).`,
+          complaint._id
+        );
+      }
+    }
+
+    await complaint.save();
+
+    res.json({
+      message: hasUpvoted ? 'Upvoted successfully (+1)' : 'Upvote removed',
+      upvotes_count: complaint.upvotes_count,
+      has_upvoted: hasUpvoted
+    });
+  } catch (error) {
+    console.error('Upvote error:', error);
+    res.status(500).json({ error: 'Failed to record upvote.' });
+  }
+});
+
+// 11. GET /api/complaints/check/duplicate - AI & Proximity Duplicate Detection (Enterprise Feature 5)
+router.get('/check/duplicate', requireAuth, async (req, res) => {
+  try {
+    const { building, room, category, title } = req.query;
+
+    if (!building && !room && !title) {
+      return res.json({ duplicates: [] });
+    }
+
+    const query = {
+      status: { $in: ['Submitted', 'Under Review', 'Assigned', 'In Progress'] }
+    };
+
+    if (building) query.building = building;
+    if (room) query.room = room;
+    if (category) query.category = category;
+
+    const duplicates = await Complaint.find(query)
+      .select('ticket_number title category building room status priority created_at upvotes_count')
+      .sort({ upvotes_count: -1, created_at: -1 })
+      .limit(3)
+      .lean();
+
+    res.json({ duplicates });
+  } catch (error) {
+    console.error('Duplicate check error:', error);
+    res.status(500).json({ error: 'Failed to check duplicates.' });
+  }
+});
+
+// 12. POST /api/complaints/:id/merge - Master Ticket Merging (Enterprise Feature 5)
+router.post('/:id/merge', requireAuth, requireRole(['admin', 'staff']), async (req, res) => {
+  try {
+    const { id } = req.params; // Master ticket ID
+    const { duplicateTicketIds } = req.body;
+
+    if (!Array.isArray(duplicateTicketIds) || duplicateTicketIds.length === 0) {
+      return res.status(400).json({ error: 'Please provide an array of duplicateTicketIds to merge.' });
+    }
+
+    const masterTicket = await Complaint.findById(id);
+    if (!masterTicket) {
+      return res.status(404).json({ error: 'Master complaint ticket not found.' });
+    }
+
+    let mergedCount = 0;
+    for (const dupId of duplicateTicketIds) {
+      if (dupId.toString() === id.toString()) continue;
+
+      const dupTicket = await Complaint.findById(dupId);
+      if (dupTicket) {
+        dupTicket.duplicate_of = masterTicket._id;
+        dupTicket.status = 'In Progress';
+        await dupTicket.save();
+
+        await Comment.create({
+          complaint_id: dupTicket._id,
+          user_id: req.user.id || req.user._id,
+          message: `Ticket linked and merged into Master Ticket #${masterTicket.ticket_number}. All progress updates will follow the master ticket.`
+        });
+
+        mergedCount++;
+      }
+    }
+
+    masterTicket.duplicate_count = (masterTicket.duplicate_count || 0) + mergedCount;
+    await masterTicket.save();
+
+    res.json({
+      message: `Successfully merged ${mergedCount} duplicate ticket(s) into Master Ticket #${masterTicket.ticket_number}.`,
+      masterTicket: formatComplaint(masterTicket)
+    });
+  } catch (error) {
+    console.error('Merge tickets error:', error);
+    res.status(500).json({ error: 'Failed to merge tickets.' });
   }
 });
 
