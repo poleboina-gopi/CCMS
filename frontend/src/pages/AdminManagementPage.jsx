@@ -99,13 +99,7 @@ export default function AdminManagementPage({ onSelectComplaint }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header & View Switcher */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
+      <div className="responsive-banner">
         <div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: '800' }}>Campus Complaint Management</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
@@ -163,13 +157,8 @@ export default function AdminManagementPage({ onSelectComplaint }) {
       </div>
 
       {/* Filter Bar */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '12px',
-          alignItems: 'center'
-        }}>
+      <div className="glass-panel" style={{ padding: '16px' }}>
+        <div className="responsive-filter-grid">
           {/* Search */}
           <div style={{ position: 'relative', gridColumn: 'span 2' }}>
             <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -268,7 +257,7 @@ export default function AdminManagementPage({ onSelectComplaint }) {
             ))}
           </div>
         ) : (
-          <div className="glass-panel" style={{ overflowX: 'auto' }}>
+          <div className="glass-panel table-scroll-wrapper">
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
               <thead>
                 <tr style={{

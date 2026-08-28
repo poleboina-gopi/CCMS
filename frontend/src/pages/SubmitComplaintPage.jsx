@@ -171,7 +171,7 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: '32px' }}>
+      <div className="glass-panel" style={{ padding: 'clamp(18px, 4vw, 32px)' }}>
         <form onSubmit={handleSubmit}>
           {/* Complaint Title */}
           <div className="form-group">
@@ -192,7 +192,7 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
           </div>
 
           {/* Category & Building Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '16px' }}>
             <div className="form-group">
               <label className="form-label">
                 <span>Category *</span>
@@ -228,7 +228,7 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
           </div>
 
           {/* Room & Priority Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '16px' }}>
             <div className="form-group">
               <label className="form-label">
                 <MapPin size={15} />

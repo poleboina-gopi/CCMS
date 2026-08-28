@@ -162,14 +162,8 @@ export default function StaffDashboard({ onSelectComplaint }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* Banner */}
       <div 
-        className="glass-panel" 
+        className="glass-panel responsive-banner" 
         style={{
-          padding: '28px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '20px',
           background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%)'
         }}
       >
@@ -272,16 +266,10 @@ export default function StaffDashboard({ onSelectComplaint }) {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between'
-        }}>
+      <div className="glass-panel" style={{ padding: '16px' }}>
+        <div className="responsive-filter-grid">
           {/* Search */}
-          <div style={{ position: 'relative', flex: '1 1 260px' }}>
+          <div style={{ position: 'relative' }}>
             <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"

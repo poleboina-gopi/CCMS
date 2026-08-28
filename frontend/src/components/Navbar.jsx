@@ -15,7 +15,9 @@ import {
   LogOut, 
   User, 
   ShieldCheck,
-  GraduationCap
+  GraduationCap,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
@@ -23,6 +25,12 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
   const { theme, toggleTheme } = useTheme();
   const { unreadCount } = useNotification();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setMobileMenuOpen(false);
+  };
 
   return (
     <header style={{
@@ -38,76 +46,79 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
       <div style={{
         maxWidth: '1360px',
         margin: '0 auto',
-        padding: '0 20px',
-        height: '70px',
+        padding: '0 16px',
+        height: '66px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '20px'
+        gap: '12px'
       }}>
         {/* Brand Logo */}
         <div 
-          onClick={() => setActiveTab(isAdmin ? 'admin-dashboard' : (isStaff ? 'staff-dashboard' : 'student-dashboard'))}
+          onClick={() => handleTabChange(isAdmin ? 'admin-dashboard' : (isStaff ? 'staff-dashboard' : 'student-dashboard'))}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             cursor: 'pointer',
-            userSelect: 'none'
+            userSelect: 'none',
+            flexShrink: 0
           }}
         >
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: '38px',
+            height: '38px',
             borderRadius: 'var(--radius-md)',
             background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: 'var(--shadow-glow)',
-            color: '#ffffff'
+            color: '#ffffff',
+            flexShrink: 0
           }}>
-            <Building2 size={24} />
+            <Building2 size={20} />
           </div>
 
           <div>
             <div style={{
-              fontSize: '1.2rem',
+              fontSize: '1.1rem',
               fontWeight: '800',
               fontFamily: 'var(--font-heading)',
               letterSpacing: '-0.02em',
               background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%)',
               WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              WebkitTextFillColor: 'transparent',
+              lineHeight: 1.2
             }}>
               CampusResolve
             </div>
             <div style={{
-              fontSize: '0.7rem',
+              fontSize: '0.65rem',
               color: 'var(--text-muted)',
               fontWeight: '600',
               textTransform: 'uppercase',
-              letterSpacing: '0.06em'
+              letterSpacing: '0.05em'
             }}>
-              College Complaint System
+              College System
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Desktop Navigation Tabs */}
+        <nav className="desktop-only" style={{ alignItems: 'center', gap: '8px' }}>
           {isStudent && (
             <>
               <button
                 className={`btn ${activeTab === 'student-dashboard' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('student-dashboard')}
+                onClick={() => handleTabChange('student-dashboard')}
               >
                 <LayoutDashboard size={16} />
                 <span>My Dashboard</span>
               </button>
               <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('submit-complaint')}
+                onClick={() => handleTabChange('submit-complaint')}
               >
                 <PlusCircle size={16} />
                 <span>Submit Complaint</span>
@@ -119,21 +130,21 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
             <>
               <button
                 className={`btn ${activeTab === 'admin-dashboard' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('admin-dashboard')}
+                onClick={() => handleTabChange('admin-dashboard')}
               >
                 <LayoutDashboard size={16} />
                 <span>Analytics & Overview</span>
               </button>
               <button
                 className={`btn ${activeTab === 'admin-management' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('admin-management')}
+                onClick={() => handleTabChange('admin-management')}
               >
                 <ClipboardList size={16} />
                 <span>Complaint Manager</span>
               </button>
               <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('submit-complaint')}
+                onClick={() => handleTabChange('submit-complaint')}
               >
                 <PlusCircle size={16} />
                 <span>Log Complaint</span>
@@ -145,14 +156,14 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
             <>
               <button
                 className={`btn ${activeTab === 'staff-dashboard' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('staff-dashboard')}
+                onClick={() => handleTabChange('staff-dashboard')}
               >
                 <Wrench size={16} />
                 <span>Department Tasks</span>
               </button>
               <button
                 className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                onClick={() => setActiveTab('submit-complaint')}
+                onClick={() => handleTabChange('submit-complaint')}
               >
                 <PlusCircle size={16} />
                 <span>Report Issue</span>
@@ -162,15 +173,15 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
         </nav>
 
         {/* Right Side Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Dark / Light Mode Switch */}
           <button
             onClick={toggleTheme}
             className="btn btn-secondary btn-sm"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
-            style={{ width: '38px', height: '38px', padding: 0, borderRadius: '50%' }}
+            style={{ width: '36px', height: '36px', padding: 0, borderRadius: '50%' }}
           >
-            {theme === 'dark' ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#6366f1" />}
+            {theme === 'dark' ? <Sun size={16} color="#fbbf24" /> : <Moon size={16} color="#6366f1" />}
           </button>
 
           {/* Notification Bell */}
@@ -179,16 +190,16 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
               onClick={() => setShowNotifications(!showNotifications)}
               className="btn btn-secondary btn-sm"
               title="Notifications"
-              style={{ width: '38px', height: '38px', padding: 0, borderRadius: '50%', position: 'relative' }}
+              style={{ width: '36px', height: '36px', padding: 0, borderRadius: '50%', position: 'relative' }}
             >
-              <Bell size={17} />
+              <Bell size={16} />
               {unreadCount > 0 && (
                 <span style={{
                   position: 'absolute',
-                  top: '-3px',
-                  right: '-3px',
-                  width: '18px',
-                  height: '18px',
+                  top: '-2px',
+                  right: '-2px',
+                  width: '17px',
+                  height: '17px',
                   borderRadius: '50%',
                   backgroundColor: 'var(--accent-rose)',
                   color: '#ffffff',
@@ -207,23 +218,25 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
             <NotificationDropdown
               isOpen={showNotifications}
               onClose={() => setShowNotifications(false)}
-              onSelectComplaint={onSelectComplaint}
+              onSelectComplaint={(id) => {
+                setShowNotifications(false);
+                onSelectComplaint(id);
+              }}
             />
           </div>
 
-          {/* User Profile Pill */}
-          <div style={{
-            display: 'flex',
+          {/* Desktop User Profile Pill */}
+          <div className="desktop-only" style={{
             alignItems: 'center',
-            gap: '10px',
-            padding: '4px 12px 4px 6px',
+            gap: '8px',
+            padding: '4px 10px 4px 6px',
             backgroundColor: 'var(--bg-tertiary)',
             borderRadius: 'var(--radius-full)',
             border: '1px solid var(--border-color)'
           }}>
             <div style={{
-              width: '30px',
-              height: '30px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               backgroundColor: isAdmin ? 'var(--accent-rose)' : (isStaff ? 'var(--accent-amber)' : 'var(--primary)'),
               color: '#ffffff',
@@ -231,28 +244,27 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: '700',
-              fontSize: '0.8rem'
+              fontSize: '0.75rem'
             }}>
-              {isAdmin ? <ShieldCheck size={16} /> : (isStaff ? <Wrench size={15} /> : <GraduationCap size={16} />)}
+              {isAdmin ? <ShieldCheck size={15} /> : (isStaff ? <Wrench size={14} /> : <GraduationCap size={15} />)}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
-              <span style={{ fontSize: '0.825rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)', maxWidth: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name}
               </span>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600' }}>
-                {user?.role === 'admin' ? 'Administrator' : (user?.role === 'staff' ? `${user?.department || 'Staff'}` : 'Student')}
+              <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '600' }}>
+                {user?.role === 'admin' ? 'Admin' : (user?.role === 'staff' ? `${user?.department || 'Staff'}` : 'Student')}
               </span>
             </div>
           </div>
 
-          {/* Prominent Log Out Button for All Users */}
+          {/* Desktop Log Out Button */}
           <button
             onClick={logout}
-            className="btn btn-sm"
+            className="btn btn-sm desktop-only"
             title="Log out of your account"
             style={{
-              display: 'flex',
               alignItems: 'center',
               gap: '6px',
               backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -260,24 +272,156 @@ export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
               border: '1px solid rgba(239, 68, 68, 0.3)',
               fontWeight: '700',
               borderRadius: 'var(--radius-sm)',
-              padding: '8px 14px',
+              padding: '6px 12px',
               cursor: 'pointer',
               transition: 'all 0.2s ease'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#ef4444';
-              e.currentTarget.style.color = '#ffffff';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-              e.currentTarget.style.color = 'var(--accent-rose)';
+          >
+            <LogOut size={14} />
+            <span>Log Out</span>
+          </button>
+
+          {/* Mobile Menu Hamburger Button */}
+          <button
+            className="btn btn-secondary btn-sm mobile-only"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+            style={{
+              width: '36px',
+              height: '36px',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <LogOut size={15} />
-            <span>Log Out</span>
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Drawer Dropdown Menu */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer">
+          {/* User Info Card in Mobile Menu */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 14px',
+            backgroundColor: 'var(--bg-tertiary)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            marginBottom: '4px'
+          }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              backgroundColor: isAdmin ? 'var(--accent-rose)' : (isStaff ? 'var(--accent-amber)' : 'var(--primary)'),
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: '700',
+              fontSize: '0.9rem',
+              flexShrink: 0
+            }}>
+              {isAdmin ? <ShieldCheck size={18} /> : (isStaff ? <Wrench size={17} /> : <GraduationCap size={18} />)}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.name}
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {user?.role === 'admin' ? 'Campus Administrator' : (user?.role === 'staff' ? `${user?.department || 'Staff'}` : `Student ID: ${user?.student_id || 'Campus'}`)}
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          {isStudent && (
+            <>
+              <button
+                className={`btn ${activeTab === 'student-dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('student-dashboard')}
+              >
+                <LayoutDashboard size={18} />
+                <span>My Dashboard</span>
+              </button>
+              <button
+                className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('submit-complaint')}
+              >
+                <PlusCircle size={18} />
+                <span>Submit Complaint</span>
+              </button>
+            </>
+          )}
+
+          {isAdmin && (
+            <>
+              <button
+                className={`btn ${activeTab === 'admin-dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('admin-dashboard')}
+              >
+                <LayoutDashboard size={18} />
+                <span>Analytics & Overview</span>
+              </button>
+              <button
+                className={`btn ${activeTab === 'admin-management' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('admin-management')}
+              >
+                <ClipboardList size={18} />
+                <span>Complaint Manager</span>
+              </button>
+              <button
+                className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('submit-complaint')}
+              >
+                <PlusCircle size={18} />
+                <span>Log Complaint</span>
+              </button>
+            </>
+          )}
+
+          {isStaff && (
+            <>
+              <button
+                className={`btn ${activeTab === 'staff-dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('staff-dashboard')}
+              >
+                <Wrench size={18} />
+                <span>Department Tasks</span>
+              </button>
+              <button
+                className={`btn ${activeTab === 'submit-complaint' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleTabChange('submit-complaint')}
+              >
+                <PlusCircle size={18} />
+                <span>Report Issue</span>
+              </button>
+            </>
+          )}
+
+          {/* Mobile Log Out Button */}
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              logout();
+            }}
+            className="btn btn-danger"
+            style={{
+              marginTop: '4px',
+              padding: '12px 16px',
+              fontWeight: '700'
+            }}
+          >
+            <LogOut size={18} />
+            <span>Log Out</span>
+          </button>
+        </div>
+      )}
     </header>
   );
 }

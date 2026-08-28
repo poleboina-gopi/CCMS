@@ -78,7 +78,7 @@ export default function AuthPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 20px',
+      padding: 'clamp(20px, 4vw, 40px) 16px',
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -92,8 +92,8 @@ export default function AuthPage() {
         maxWidth: '1080px',
         width: '100%',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-        gap: '40px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+        gap: 'clamp(24px, 4vw, 40px)',
         alignItems: 'center'
       }}>
         {/* Left Side: Brand Overview & Campus Ecosystem Pillars */}
@@ -117,7 +117,7 @@ export default function AuthPage() {
             </div>
 
             <h1 style={{
-              fontSize: '2.5rem',
+              fontSize: 'clamp(1.75rem, 5vw, 2.5rem)',
               lineHeight: '1.15',
               fontWeight: '800',
               marginBottom: '14px',
@@ -231,7 +231,7 @@ export default function AuthPage() {
         </div>
 
         {/* Right Side: Clean Secure Authentication Portal */}
-        <div className="glass-panel" style={{ padding: '36px 32px' }}>
+        <div className="glass-panel" style={{ padding: 'clamp(20px, 5vw, 36px)' }}>
           {/* Tabs */}
           <div style={{
             display: 'flex',

@@ -97,14 +97,8 @@ export default function AdminDashboard({ onSelectComplaint, onNavigateManagement
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* Top Banner */}
       <div 
-        className="glass-panel" 
+        className="glass-panel responsive-banner" 
         style={{
-          padding: '28px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '20px',
           background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(244, 63, 94, 0.1) 100%)'
         }}
       >

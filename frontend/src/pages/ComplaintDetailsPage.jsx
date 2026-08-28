@@ -218,14 +218,8 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Top Header Bar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="responsive-banner">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
           <button 
             onClick={onNavigateBack} 
             className="btn btn-secondary btn-sm"
@@ -291,12 +285,7 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
       </div>
 
       {/* Main Grid: Details Left, Comments/Timeline Right */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-        gap: '24px',
-        alignItems: 'start'
-      }}>
+      <div className="responsive-details-grid">
         {/* Left Column: Complaint Details & Management Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Issue Description Box */}

@@ -78,14 +78,8 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* Student Welcome Banner */}
       <div 
-        className="glass-panel" 
+        className="glass-panel responsive-banner" 
         style={{
-          padding: '28px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '20px',
           background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)'
         }}
       >
@@ -152,16 +146,10 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between'
-        }}>
+      <div className="glass-panel" style={{ padding: '16px' }}>
+        <div className="responsive-filter-grid">
           {/* Search Input */}
-          <div style={{ position: 'relative', flex: '1 1 280px' }}>
+          <div style={{ position: 'relative' }}>
             <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
@@ -256,8 +244,8 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
+            gap: '16px'
           }}>
             {complaints.map(item => (
               <ComplaintCard
