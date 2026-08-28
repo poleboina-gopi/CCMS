@@ -27,7 +27,17 @@ export function AuthProvider({ children }) {
     }
   });
   const [token, setToken] = useState(() => localStorage.getItem('ccms_token') || null);
-  const [loading, setLoading] = useState(true);
+  
+  // Instant load: never block rendering if logged out or if cached user is present
+  const [loading, setLoading] = useState(() => {
+    try {
+      const savedToken = localStorage.getItem('ccms_token');
+      const savedUser = localStorage.getItem('ccms_user');
+      return !!(savedToken && !savedUser);
+    } catch {
+      return false;
+    }
+  });
 
   const logout = useCallback(() => {
     setUser(null);
@@ -38,6 +48,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      try { controller.abort(); } catch {}
+      if (isMounted) setLoading(false);
+    }, 3500);
 
     async function verifySession() {
       if (!token) {
@@ -48,7 +63,8 @@ export function AuthProvider({ children }) {
         const res = await fetch(`${API_BASE}/api/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          signal: controller.signal
         });
         if (res.ok) {
           const data = await res.json();
@@ -56,13 +72,13 @@ export function AuthProvider({ children }) {
             setUser(data.user);
             localStorage.setItem('ccms_user', JSON.stringify(data.user));
           }
-        } else {
-          // Expired or invalid token
+        } else if (res.status === 401 || res.status === 403) {
           logout();
         }
       } catch (err) {
-        console.error('Session verify error:', err);
+        console.warn('Session verify note (cold start or offline):', err.message);
       } finally {
+        clearTimeout(timeoutId);
         if (isMounted) setLoading(false);
       }
     }
@@ -71,6 +87,8 @@ export function AuthProvider({ children }) {
 
     return () => {
       isMounted = false;
+      controller.abort();
+      clearTimeout(timeoutId);
     };
   }, [token, logout]);
 
