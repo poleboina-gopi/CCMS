@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth, API_BASE } from '../context/AuthContext';
+import { useAuth, API_BASE, getMediaUrl } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
@@ -25,7 +25,16 @@ import {
   FileText,
   Lock,
   Eye,
-  Trash2
+  Trash2,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Download,
+  ExternalLink,
+  Image as ImageIcon,
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
@@ -44,6 +53,36 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [statusUpdateNote, setStatusUpdateNote] = useState('');
   const [showStatusPrompt, setShowStatusPrompt] = useState(null);
+
+  // Lightbox & Image States
+  const [activeLightboxImage, setActiveLightboxImage] = useState(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [lightboxRotation, setLightboxRotation] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  const [resImageError, setResImageError] = useState(false);
+
+  const openLightbox = (src, title) => {
+    setActiveLightboxImage({ src, title });
+    setLightboxZoom(1);
+    setLightboxRotation(0);
+  };
+
+  const closeLightbox = () => {
+    setActiveLightboxImage(null);
+    setLightboxZoom(1);
+    setLightboxRotation(0);
+  };
+
+  // Keyboard shortcut: ESC to close lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && activeLightboxImage) {
+        closeLightbox();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeLightboxImage]);
 
   const fetchDetails = useCallback(async () => {
     try {
@@ -278,41 +317,195 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
 
             {/* Attached Photo */}
             {complaint.image_url && (
-              <div style={{ marginTop: '16px' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  ATTACHED EVIDENCE PHOTO:
-                </div>
-                <div style={{
-                  borderRadius: 'var(--radius-md)',
-                  overflow: 'hidden',
-                  border: '1px solid var(--border-glass)',
-                  maxHeight: '320px'
+              <div style={{ marginTop: '20px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '10px'
                 }}>
-                  <img
-                    src={complaint.image_url.startsWith('http') ? complaint.image_url : `${API_BASE}${complaint.image_url}`}
-                    alt="Complaint Evidence"
-                    style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }}
-                  />
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    fontWeight: '700', 
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <ImageIcon size={14} color="var(--primary)" />
+                    <span>ATTACHED EVIDENCE PHOTO:</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openLightbox(getMediaUrl(complaint.image_url), `Evidence Photo - #${complaint.ticket_number}`)}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Maximize2 size={13} />
+                    <span>View Fullscreen</span>
+                  </button>
                 </div>
+
+                {!imageError ? (
+                  <div 
+                    style={{
+                      position: 'relative',
+                      borderRadius: 'var(--radius-md)',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-glass)',
+                      backgroundColor: 'var(--bg-tertiary)',
+                      cursor: 'zoom-in',
+                      maxHeight: '360px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onClick={() => openLightbox(getMediaUrl(complaint.image_url), `Evidence Photo - #${complaint.ticket_number}`)}
+                  >
+                    <img
+                      src={getMediaUrl(complaint.image_url)}
+                      alt="Complaint Evidence"
+                      onError={() => setImageError(true)}
+                      style={{ 
+                        width: '100%', 
+                        maxHeight: '360px', 
+                        objectFit: 'contain', 
+                        display: 'block',
+                        backgroundColor: '#0a0d14'
+                      }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      right: '10px',
+                      background: 'rgba(0, 0, 0, 0.75)',
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      backdropFilter: 'blur(4px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <Maximize2 size={12} />
+                      <span>Click to zoom & download</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '20px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px dashed rgba(239, 68, 68, 0.3)',
+                    borderRadius: 'var(--radius-md)',
+                    textAlign: 'center'
+                  }}>
+                    <AlertTriangle size={24} color="#ef4444" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      Evidence image cannot be previewed directly
+                    </div>
+                    <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                      <button 
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setImageError(false)}
+                      >
+                        <RefreshCw size={12} /> Retry Loading
+                      </button>
+                      <a 
+                        href={getMediaUrl(complaint.image_url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-primary btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <ExternalLink size={12} /> Open Image Link
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Resolution Notes If Resolved */}
-            {complaint.resolution_notes && (
+            {/* Resolution Notes & Proof If Resolved */}
+            {(complaint.resolution_notes || complaint.resolution_image) && (
               <div style={{
                 marginTop: '20px',
-                padding: '16px',
+                padding: '18px',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: 'var(--radius-sm)'
+                borderRadius: 'var(--radius-md)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-emerald)', fontWeight: '700', fontSize: '0.85rem', marginBottom: '6px' }}>
-                  <CheckCircle2 size={16} />
-                  <span>Department Resolution Notes</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-emerald)', fontWeight: '700', fontSize: '0.9rem', marginBottom: '8px' }}>
+                  <CheckCircle2 size={18} />
+                  <span>Department Resolution Notes & Verification</span>
                 </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
-                  {complaint.resolution_notes}
-                </p>
+                {complaint.resolution_notes && (
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: '1.6', marginBottom: complaint.resolution_image ? '14px' : '0' }}>
+                    {complaint.resolution_notes}
+                  </p>
+                )}
+
+                {/* Resolution Photo Attachment */}
+                {complaint.resolution_image && (
+                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.775rem', fontWeight: '700', color: 'var(--accent-emerald)' }}>
+                        📸 RESOLUTION PROOF PHOTO:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => openLightbox(getMediaUrl(complaint.resolution_image), `Resolution Proof - #${complaint.ticket_number}`)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '3px 8px', fontSize: '0.725rem' }}
+                      >
+                        <Maximize2 size={12} style={{ marginRight: '4px' }} />
+                        Fullscreen
+                      </button>
+                    </div>
+
+                    {!resImageError ? (
+                      <div 
+                        style={{
+                          borderRadius: 'var(--radius-sm)',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          cursor: 'zoom-in',
+                          maxHeight: '220px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: '#0a0d14'
+                        }}
+                        onClick={() => openLightbox(getMediaUrl(complaint.resolution_image), `Resolution Proof - #${complaint.ticket_number}`)}
+                      >
+                        <img
+                          src={getMediaUrl(complaint.resolution_image)}
+                          alt="Resolution Proof"
+                          onError={() => setResImageError(true)}
+                          style={{ width: '100%', maxHeight: '220px', objectFit: 'contain', display: 'block' }}
+                        />
+                      </div>
+                    ) : (
+                      <a 
+                        href={getMediaUrl(complaint.resolution_image)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-secondary btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <ExternalLink size={12} /> View Resolution Photo
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -702,6 +895,148 @@ export default function ComplaintDetailsPage({ complaintId, onNavigateBack }) {
         onClose={() => setIsAssignOpen(false)}
         onAssignSuccess={fetchDetails}
       />
+
+      {/* Interactive Fullscreen Image Lightbox Modal */}
+      {activeLightboxImage && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.92)',
+            backdropFilter: 'blur(12px)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'fadeIn 0.2s ease'
+          }}
+          onClick={closeLightbox}
+        >
+          {/* Lightbox Toolbar */}
+          <div 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 24px',
+              backgroundColor: 'rgba(20, 20, 25, 0.8)',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#ffffff'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ImageIcon size={20} color="var(--primary)" />
+              <span style={{ fontSize: '0.95rem', fontWeight: '700' }}>
+                {activeLightboxImage.title}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Zoom Out */}
+              <button
+                type="button"
+                onClick={() => setLightboxZoom(prev => Math.max(0.5, prev - 0.25))}
+                className="btn btn-secondary btn-sm"
+                title="Zoom Out"
+                style={{ width: '36px', height: '36px', padding: 0 }}
+              >
+                <ZoomOut size={16} />
+              </button>
+
+              <span style={{ fontSize: '0.8rem', fontFamily: 'monospace', minWidth: '45px', textAlign: 'center' }}>
+                {Math.round(lightboxZoom * 100)}%
+              </span>
+
+              {/* Zoom In */}
+              <button
+                type="button"
+                onClick={() => setLightboxZoom(prev => Math.min(3, prev + 0.25))}
+                className="btn btn-secondary btn-sm"
+                title="Zoom In"
+                style={{ width: '36px', height: '36px', padding: 0 }}
+              >
+                <ZoomIn size={16} />
+              </button>
+
+              {/* Rotate */}
+              <button
+                type="button"
+                onClick={() => setLightboxRotation(prev => (prev + 90) % 360)}
+                className="btn btn-secondary btn-sm"
+                title="Rotate Clockwise"
+                style={{ width: '36px', height: '36px', padding: 0 }}
+              >
+                <RotateCw size={16} />
+              </button>
+
+              {/* Open in new tab */}
+              <a
+                href={activeLightboxImage.src}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secondary btn-sm"
+                title="Open Original in New Tab"
+                style={{ width: '36px', height: '36px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <ExternalLink size={16} />
+              </a>
+
+              {/* Download */}
+              <a
+                href={activeLightboxImage.src}
+                download
+                className="btn btn-secondary btn-sm"
+                title="Download Image"
+                style={{ width: '36px', height: '36px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Download size={16} />
+              </a>
+
+              {/* Close */}
+              <button
+                type="button"
+                onClick={closeLightbox}
+                className="btn btn-danger btn-sm"
+                title="Close (Esc)"
+                style={{ width: '36px', height: '36px', padding: 0, marginLeft: '6px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Lightbox Image Stage */}
+          <div 
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'auto',
+              padding: '24px'
+            }}
+          >
+            <img
+              src={activeLightboxImage.src}
+              alt={activeLightboxImage.title}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '80vh',
+                objectFit: 'contain',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
+                transform: `scale(${lightboxZoom}) rotate(${lightboxRotation}deg)`,
+                transition: 'transform 0.2s ease',
+                userSelect: 'none'
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

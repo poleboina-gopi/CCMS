@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getMediaUrl } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ComplaintCard from '../components/ComplaintCard';
 import StatusBadge from '../components/StatusBadge';
@@ -14,7 +14,10 @@ import {
   RefreshCw, 
   User, 
   Building,
-  ArrowRight
+  ArrowRight,
+  Image as ImageIcon,
+  UploadCloud,
+  X
 } from 'lucide-react';
 
 export default function StaffDashboard({ onSelectComplaint }) {
@@ -40,6 +43,8 @@ export default function StaffDashboard({ onSelectComplaint }) {
   // Quick Resolve modal state
   const [resolveTarget, setResolveTarget] = useState(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [resolutionFile, setResolutionFile] = useState(null);
+  const [resolutionFilePreview, setResolutionFilePreview] = useState(null);
   const [submittingResolve, setSubmittingResolve] = useState(false);
 
   const fetchStaffData = useCallback(async () => {
@@ -82,6 +87,27 @@ export default function StaffDashboard({ onSelectComplaint }) {
     }
   };
 
+  const handleResolutionFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('Photo must be under 10MB.', 'error');
+        return;
+      }
+      setResolutionFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setResolutionFilePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveResolutionFile = () => {
+    setResolutionFile(null);
+    setResolutionFilePreview(null);
+  };
+
   const handleConfirmResolve = async (e) => {
     e.preventDefault();
     if (!resolutionNotes.trim()) {
@@ -91,18 +117,32 @@ export default function StaffDashboard({ onSelectComplaint }) {
 
     setSubmittingResolve(true);
     try {
-      const res = await authFetch(`/api/complaints/${resolveTarget.id}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          status: 'Resolved',
-          resolution_notes: resolutionNotes.trim()
-        })
-      });
+      let res;
+      if (resolutionFile) {
+        const formData = new FormData();
+        formData.append('status', 'Resolved');
+        formData.append('resolution_notes', resolutionNotes.trim());
+        formData.append('resolution_image', resolutionFile);
+        res = await authFetch(`/api/complaints/${resolveTarget.id}/status`, {
+          method: 'PUT',
+          body: formData
+        });
+      } else {
+        res = await authFetch(`/api/complaints/${resolveTarget.id}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            status: 'Resolved',
+            resolution_notes: resolutionNotes.trim()
+          })
+        });
+      }
 
       if (!res.ok) throw new Error('Failed to mark resolved.');
-      showToast('Complaint resolved successfully!', 'success');
+      showToast('Complaint resolved successfully with verification!', 'success');
       setResolveTarget(null);
       setResolutionNotes('');
+      setResolutionFile(null);
+      setResolutionFilePreview(null);
       fetchStaffData();
     } catch (err) {
       showToast(err.message, 'error');
@@ -348,6 +388,34 @@ export default function StaffDashboard({ onSelectComplaint }) {
                     {item.description}
                   </p>
 
+                  {/* Attached Evidence Badge */}
+                  {item.image_url && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '4px 8px',
+                      backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                      border: '1px solid rgba(99, 102, 241, 0.2)',
+                      borderRadius: 'var(--radius-sm)',
+                      width: 'fit-content',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: 'var(--primary)'
+                    }}>
+                      <img
+                        src={getMediaUrl(item.image_url)}
+                        alt="Evidence"
+                        style={{ width: '20px', height: '20px', borderRadius: '3px', objectFit: 'cover' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <ImageIcon size={12} />
+                        <span>Student Photo Evidence</span>
+                      </span>
+                    </div>
+                  )}
+
                   <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', display: 'flex', gap: '12px', marginTop: '2px' }}>
                     <span>📍 {item.location}</span>
                     <span>👤 Student: {item.student_name}</span>
@@ -371,6 +439,9 @@ export default function StaffDashboard({ onSelectComplaint }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setResolveTarget(item);
+                        setResolutionNotes('');
+                        setResolutionFile(null);
+                        setResolutionFilePreview(null);
                       }}
                     >
                       <CheckCircle2 size={14} />
@@ -405,14 +476,85 @@ export default function StaffDashboard({ onSelectComplaint }) {
 
             <form onSubmit={handleConfirmResolve}>
               <div className="form-group">
+                <label className="form-label">
+                  <span>Work & Resolution Notes *</span>
+                </label>
                 <textarea
                   className="form-textarea"
                   placeholder="e.g. Replaced leaking valve, tested with 5 bar pressure for 30 minutes, normal operation confirmed."
                   value={resolutionNotes}
                   onChange={(e) => setResolutionNotes(e.target.value)}
-                  rows={4}
+                  rows={3}
                   required
                 />
+              </div>
+
+              {/* Optional Proof Photo Upload */}
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label className="form-label">
+                  <ImageIcon size={14} />
+                  <span>Attach Repair / Resolution Photo Proof (Optional)</span>
+                </label>
+
+                {!resolutionFilePreview ? (
+                  <label 
+                    style={{
+                      border: '1px dashed var(--border-color)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      backgroundColor: 'var(--bg-input)'
+                    }}
+                  >
+                    <UploadCloud size={18} color="var(--primary)" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      Upload repair proof photo
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*,.jpg,.jpeg,.png,.webp"
+                      onChange={handleResolutionFileChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    border: '1px solid var(--border-glass)',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: 'var(--bg-tertiary)'
+                  }}>
+                    <img
+                      src={resolutionFilePreview}
+                      alt="Resolution Proof"
+                      style={{ width: '45px', height: '45px', borderRadius: '4px', objectFit: 'cover' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', flex: 1, color: 'var(--text-primary)', fontWeight: '600' }}>
+                      {resolutionFile?.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveResolutionFile}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>

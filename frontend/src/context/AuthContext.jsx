@@ -2,6 +2,19 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 
 export const API_BASE = import.meta.env.VITE_API_URL || '';
 
+/**
+ * Safely resolves relative and absolute media/upload URLs
+ */
+export function getMediaUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+  const cleanBase = (API_BASE || '').replace(/\/+$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return cleanBase ? `${cleanBase}${cleanPath}` : cleanPath;
+}
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getMediaUrl } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
@@ -281,6 +281,7 @@ export default function AdminManagementPage({ onSelectComplaint }) {
                 }}>
                   <th style={{ padding: '14px 18px' }}>Ticket # & Title</th>
                   <th style={{ padding: '14px 18px' }}>Category & Location</th>
+                  <th style={{ padding: '14px 18px' }}>Evidence</th>
                   <th style={{ padding: '14px 18px' }}>Student</th>
                   <th style={{ padding: '14px 18px' }}>Department / Assigned</th>
                   <th style={{ padding: '14px 18px' }}>Priority</th>
@@ -317,6 +318,40 @@ export default function AdminManagementPage({ onSelectComplaint }) {
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {item.location}
                       </div>
+                    </td>
+
+                    {/* Evidence Attachment */}
+                    <td style={{ padding: '14px 18px' }}>
+                      {item.image_url ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={getMediaUrl(item.image_url)}
+                            alt="Proof thumbnail"
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '4px',
+                              objectFit: 'cover',
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: 'var(--bg-tertiary)'
+                            }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                          <span style={{
+                            fontSize: '0.725rem',
+                            fontWeight: '700',
+                            color: 'var(--primary)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            padding: '2px 6px',
+                            borderRadius: 'var(--radius-sm)',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            📷 Photo
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>None</span>
+                      )}
                     </td>
 
                     {/* Student */}

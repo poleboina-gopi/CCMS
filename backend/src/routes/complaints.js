@@ -18,35 +18,54 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg', '.avif', '.jfif'];
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const cleanExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
+    const cleanExt = ALLOWED_IMAGE_EXTS.includes(ext) ? ext : '.jpg';
     const uniqueName = `complaint_${Date.now()}_${Math.round(Math.random() * 1e9)}${cleanExt}`;
     cb(null, uniqueName);
   }
 });
 
-// Strict file upload security: Only Images (JPEG, PNG, WEBP) up to 5MB max
+// Robust image upload security: Only Images (JPG, PNG, WEBP, GIF, SVG, BMP, AVIF) up to 10MB
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedExts = /jpeg|jpg|png|webp/;
-    const allowedMime = /^image\/(jpeg|png|webp)$/;
-    const ext = path.extname(file.originalname).toLowerCase().slice(1);
-    const mime = file.mimetype;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isImageExt = ALLOWED_IMAGE_EXTS.includes(ext);
+    const isImageMime = file.mimetype && (file.mimetype.startsWith('image/') || /^application\/(octet-stream)$/.test(file.mimetype));
 
-    if (allowedExts.test(ext) && allowedMime.test(mime)) {
+    if (isImageExt || isImageMime) {
       cb(null, true);
     } else {
-      cb(new Error('Security restriction: Only image files (JPG, PNG, WEBP) under 5MB are permitted.'));
+      cb(new Error('Security restriction: Only image files (JPG, PNG, WEBP, GIF, SVG, BMP) under 10MB are permitted.'));
     }
   }
 });
+
+// Middleware wrapper to catch multer errors gracefully with 400 status
+function handleImageUpload(fieldName) {
+  const uploadSingle = upload.single(fieldName);
+  return (req, res, next) => {
+    uploadSingle(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'File size exceeds maximum allowed limit of 10MB.' });
+        }
+        return res.status(400).json({ error: `File upload error: ${err.message}` });
+      } else if (err) {
+        return res.status(400).json({ error: err.message || 'Invalid file format. Please upload an image.' });
+      }
+      next();
+    });
+  };
+}
 
 // Helper: generate guaranteed unique ticket number
 async function generateTicketNumber() {
@@ -97,6 +116,9 @@ function formatComplaint(doc, commentCount = 0, feedback = null) {
     assigned_name: assigned ? assigned.name : null,
     assigned_email: assigned ? assigned.email : null,
     assigned_dept: assigned ? assigned.department : null,
+    image_url: c.image_url || null,
+    resolution_image: c.resolution_image || null,
+    resolution_notes: c.resolution_notes || null,
     comments_count: commentCount,
     feedback_rating: feedback ? feedback.rating : (c.feedback_rating || null),
     feedback_comments: feedback ? feedback.comments : (c.feedback_comments || null)
@@ -276,7 +298,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // 3. POST /api/complaints - Submit new complaint
-router.post('/', requireAuth, complaintLimiter, upload.single('image'), validateComplaintInput, async (req, res) => {
+router.post('/', requireAuth, complaintLimiter, handleImageUpload('image'), validateComplaintInput, async (req, res) => {
   try {
     const {
       title,
@@ -391,10 +413,11 @@ router.post('/', requireAuth, complaintLimiter, upload.single('image'), validate
 });
 
 // 4. PUT /api/complaints/:id/status - Update status & resolution
-router.put('/:id/status', requireAuth, requireRole(['admin', 'staff']), upload.single('resolution_image'), async (req, res) => {
+router.put('/:id/status', requireAuth, requireRole(['admin', 'staff']), handleImageUpload('resolution_image'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, resolution_notes } = req.body;
+    const finalNotes = (resolution_notes && resolution_notes.trim()) || (notes && notes.trim()) || '';
 
     const validStatuses = ['Submitted', 'Under Review', 'Assigned', 'In Progress', 'Resolved', 'Closed'];
     if (!validStatuses.includes(status)) {
@@ -414,8 +437,8 @@ router.put('/:id/status', requireAuth, requireRole(['admin', 'staff']), upload.s
       complaint.resolution_image = `/uploads/${req.file.filename}`;
     }
 
-    if (notes && notes.trim()) {
-      complaint.resolution_notes = notes.trim();
+    if (finalNotes) {
+      complaint.resolution_notes = finalNotes;
     }
 
     if (status === 'Resolved') {
@@ -429,8 +452,8 @@ router.put('/:id/status', requireAuth, requireRole(['admin', 'staff']), upload.s
     const currentUserId = req.user.id || req.user._id;
 
     // Add status update comment
-    const commentMessage = notes && notes.trim()
-      ? `Status updated from "${previousStatus}" to "${status}". Notes: ${notes.trim()}`
+    const commentMessage = finalNotes
+      ? `Status updated from "${previousStatus}" to "${status}". Notes: ${finalNotes}`
       : `Status updated from "${previousStatus}" to "${status}".`;
 
     await Comment.create({

@@ -42,18 +42,22 @@ app.use(cors({
 }));
 
 // 3. Body parsers with payload size limits (prevent DoS)
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 4. Rate Limiting for all API routes
 app.use('/api', apiLimiter);
 
-// Ensure upload directory exists and serve statically
+// Ensure upload directory exists and serve statically with open CORS & resource policy
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(uploadsDir));
 
 // Healthcheck
 app.get('/api/health', (req, res) => {

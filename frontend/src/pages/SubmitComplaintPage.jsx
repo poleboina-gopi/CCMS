@@ -83,6 +83,10 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
         showToast('File size must be under 10MB.', 'error');
         return;
       }
+      if (!file.type.startsWith('image/') && !/\.(jpg|jpeg|png|webp|gif|svg|bmp|avif)$/i.test(file.name)) {
+        showToast('Please upload an image file (PNG, JPG, WEBP, GIF, SVG, BMP).', 'error');
+        return;
+      }
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -158,8 +162,8 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
         </button>
         <div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: '800' }}>Submit New Complaint</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Provide details below so the campus maintenance squad can take immediate action.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            Provide clear details and attach photos to help campus technicians resolve the issue swiftly.
           </p>
         </div>
       </div>
@@ -169,20 +173,22 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
           {/* Complaint Title */}
           <div className="form-group">
             <label className="form-label">
-              <FilePlus size={16} color="var(--primary)" />
               <span>Complaint Title *</span>
             </label>
             <input
               type="text"
               className="form-input"
-              placeholder="e.g. Wi-Fi Router blinking amber and dropping packets"
+              placeholder="e.g., Wi-Fi router reboot loop in Hostel Block B"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                handleDescriptionChange(description);
+              }}
               required
             />
           </div>
 
-          {/* Category & Priority Grid */}
+          {/* Category & Building Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
             <div className="form-group">
               <label className="form-label">
@@ -202,51 +208,8 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
 
             <div className="form-group">
               <label className="form-label">
-                <AlertTriangle size={15} color="var(--accent-amber)" />
-                <span>Urgency Priority</span>
-              </label>
-              <select
-                className="form-select"
-                value={priority}
-                onChange={(e) => {
-                  setPriority(e.target.value);
-                  setAiPriorityReason('');
-                }}
-              >
-                <option value="Low">🟢 Low (Routine / Minor)</option>
-                <option value="Medium">🟡 Medium (Normal Priority)</option>
-                <option value="High">🟠 High (Impacting Classes/Study)</option>
-                <option value="Critical">🔴 Critical (Emergency / Safety Risk)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* AI Urgency Suggestion Banner */}
-          {aiPriorityReason && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 14px',
-              backgroundColor: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--accent-amber)',
-              fontSize: '0.825rem',
-              fontWeight: '600',
-              marginBottom: '18px'
-            }}>
-              <Sparkles size={16} />
-              <span>{aiPriorityReason}</span>
-            </div>
-          )}
-
-          {/* Location Details */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
-            <div className="form-group">
-              <label className="form-label">
                 <Building size={15} />
-                <span>Campus Building / Area *</span>
+                <span>Building / Facility *</span>
               </label>
               <select
                 className="form-select"
@@ -259,22 +222,63 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
                 ))}
               </select>
             </div>
+          </div>
 
+          {/* Room & Priority Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
             <div className="form-group">
               <label className="form-label">
                 <MapPin size={15} />
-                <span>Floor / Room / Landmark *</span>
+                <span>Room / Floor / Area *</span>
               </label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. 3rd Floor, Room 304 (Near Elevator)"
+                placeholder="e.g., Room 304, 3rd Floor or Server Rack A"
                 value={room}
                 onChange={(e) => setRoom(e.target.value)}
                 required
               />
             </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                <span>Priority Level *</span>
+              </label>
+              <select
+                className="form-select"
+                value={priority}
+                onChange={(e) => {
+                  setPriority(e.target.value);
+                  setAiPriorityReason('');
+                }}
+              >
+                <option value="Low">Low (Minor cosmetic issue)</option>
+                <option value="Medium">Medium (Standard request)</option>
+                <option value="High">High (Impacting classes/daily living)</option>
+                <option value="Critical">Critical (Immediate safety or outage hazard)</option>
+              </select>
+            </div>
           </div>
+
+          {/* AI Urgency Suggestion Banner */}
+          {aiPriorityReason && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 16px',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: '20px',
+              fontSize: '0.85rem',
+              color: 'var(--accent-rose)'
+            }}>
+              <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+              <span>{aiPriorityReason}</span>
+            </div>
+          )}
 
           {/* Detailed Description */}
           <div className="form-group">
@@ -320,11 +324,11 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
                   Click to upload or drag & drop photo
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  PNG, JPG, WEBP, or PDF up to 10MB
+                  PNG, JPG, WEBP, GIF, SVG, BMP up to 10MB
                 </span>
                 <input
                   type="file"
-                  accept="image/*,.pdf,.doc,.docx"
+                  accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.svg,.bmp,.avif"
                   onChange={handleFileChange}
                   style={{ display: 'none' }}
                 />
@@ -332,34 +336,44 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
             ) : (
               <div style={{
                 position: 'relative',
-                display: 'inline-block',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '12px',
                 border: '1px solid var(--border-glass)',
+                backgroundColor: 'var(--bg-tertiary)',
                 borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                maxHeight: '220px'
+                overflow: 'hidden'
               }}>
                 <img
                   src={filePreview}
                   alt="Complaint Preview"
-                  style={{ maxWidth: '100%', height: 'auto', display: 'block', maxHeight: '200px', objectFit: 'cover' }}
+                  style={{ width: '80px', height: '80px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', flexShrink: 0 }}
                 />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: '700', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {selectedFile?.name || 'Evidence Photo'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {selectedFile?.size ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : ''} • Ready for upload
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={handleRemoveFile}
+                  title="Remove image"
                   style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    border: 'none',
-                    color: '#ffffff',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
                     borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
+                    width: '32px',
+                    height: '32px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    flexShrink: 0
                   }}
                 >
                   <X size={16} />
