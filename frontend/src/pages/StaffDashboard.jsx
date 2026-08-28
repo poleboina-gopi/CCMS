@@ -123,6 +123,9 @@ export default function StaffDashboard({ onSelectComplaint }) {
         formData.append('status', 'Resolved');
         formData.append('resolution_notes', resolutionNotes.trim());
         formData.append('resolution_image', resolutionFile);
+        if (resolutionFilePreview && resolutionFilePreview.startsWith('data:image/')) {
+          formData.append('resolution_image_data', resolutionFilePreview);
+        }
         res = await authFetch(`/api/complaints/${resolveTarget.id}/status`, {
           method: 'PUT',
           body: formData

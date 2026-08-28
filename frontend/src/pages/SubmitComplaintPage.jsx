@@ -122,6 +122,9 @@ export default function SubmitComplaintPage({ onNavigateBack, onComplaintCreated
 
       if (selectedFile) {
         formData.append('image', selectedFile);
+        if (filePreview && filePreview.startsWith('data:image/')) {
+          formData.append('image_data', filePreview);
+        }
       }
 
       const res = await authFetch('/api/complaints', {

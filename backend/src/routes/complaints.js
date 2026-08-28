@@ -357,7 +357,20 @@ router.post('/', requireAuth, complaintLimiter, handleImageUpload('image'), vali
 
     const autoDepartment = categoryDepartmentMap[category] || 'General Grievance Cell';
     const ticketNumber = await generateTicketNumber();
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    let imageUrl = null;
+    if (req.file) {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const mime = req.file.mimetype || 'image/jpeg';
+        imageUrl = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+      } catch (err) {
+        imageUrl = `/uploads/${req.file.filename}`;
+      }
+    } else if (req.body.image_data && typeof req.body.image_data === 'string' && req.body.image_data.startsWith('data:image/')) {
+      imageUrl = req.body.image_data;
+    }
+
     const currentUserId = req.user.id || req.user._id;
 
     const newComplaint = await Complaint.create({
@@ -434,7 +447,15 @@ router.put('/:id/status', requireAuth, requireRole(['admin', 'staff']), handleIm
     complaint.updated_at = new Date();
 
     if (req.file) {
-      complaint.resolution_image = `/uploads/${req.file.filename}`;
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const mime = req.file.mimetype || 'image/jpeg';
+        complaint.resolution_image = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+      } catch (err) {
+        complaint.resolution_image = `/uploads/${req.file.filename}`;
+      }
+    } else if (req.body.resolution_image_data && typeof req.body.resolution_image_data === 'string' && req.body.resolution_image_data.startsWith('data:image/')) {
+      complaint.resolution_image = req.body.resolution_image_data;
     }
 
     if (finalNotes) {
