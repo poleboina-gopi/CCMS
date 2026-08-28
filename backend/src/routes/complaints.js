@@ -6,8 +6,8 @@ const mongoose = require('mongoose');
 const { Complaint, Comment, Feedback, Notification, User } = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendResolutionEmail } = require('../services/emailService');
-const { complaintLimiter } = require('../middleware/rateLimiter');
-const { validateComplaintInput, validateCommentInput, validateFeedbackInput } = require('../middleware/validation');
+const { complaintLimiter, commentLimiter } = require('../middleware/rateLimiter');
+const { validateComplaintInput, validateCommentInput, validateFeedbackInput, escapeRegex } = require('../middleware/validation');
 const { logAuditEvent } = require('../middleware/auditLogger');
 
 const router = express.Router();
@@ -172,7 +172,8 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     if (search && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const safeSearch = escapeRegex(search.trim().slice(0, 100));
+      const regex = new RegExp(safeSearch, 'i');
       query.$or = [
         { title: regex },
         { description: regex },
@@ -655,7 +656,7 @@ router.put('/:id/priority', requireAuth, requireRole(['admin', 'staff']), async 
 });
 
 // 7. POST /api/complaints/:id/comments - Add comment/message
-router.post('/:id/comments', requireAuth, validateCommentInput, async (req, res) => {
+router.post('/:id/comments', requireAuth, commentLimiter, validateCommentInput, async (req, res) => {
   try {
     const { id } = req.params;
     const { message, is_internal = false } = req.body;
@@ -723,7 +724,7 @@ router.post('/:id/comments', requireAuth, validateCommentInput, async (req, res)
 });
 
 // 8. POST /api/complaints/:id/feedback - Submit rating
-router.post('/:id/feedback', requireAuth, validateFeedbackInput, async (req, res) => {
+router.post('/:id/feedback', requireAuth, commentLimiter, validateFeedbackInput, async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comments } = req.body;

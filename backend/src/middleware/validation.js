@@ -90,6 +90,28 @@ function validateLogin(req, res, next) {
 }
 
 /**
+ * Removes dangerous HTML / script tags to prevent Cross-Site Scripting (XSS) (OWASP A03)
+ */
+function stripHtmlTags(input) {
+  if (typeof input !== 'string') return input;
+  return input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/on\w+='[^']*'/gi, '')
+    .replace(/javascript:[^"']*/gi, '')
+    .replace(/[<>]/g, '');
+}
+
+/**
+ * Escapes characters with special meaning in Regular Expressions to prevent ReDoS attacks
+ */
+function escapeRegex(text) {
+  if (typeof text !== 'string') return '';
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
+
+/**
  * Validation for Complaint Submission
  */
 function validateComplaintInput(req, res, next) {
@@ -117,12 +139,13 @@ function validateComplaintInput(req, res, next) {
     req.body.priority = priority.trim();
   }
 
-  req.body.title = title.trim();
-  req.body.description = description.trim();
+  // XSS Neutralization
+  req.body.title = stripHtmlTags(title.trim());
+  req.body.description = stripHtmlTags(description.trim());
   req.body.category = category.trim();
-  req.body.location = location.trim();
-  req.body.building = building ? building.trim() : null;
-  req.body.room = room ? room.trim() : null;
+  req.body.location = stripHtmlTags(location.trim());
+  req.body.building = building ? stripHtmlTags(building.trim()) : null;
+  req.body.room = room ? stripHtmlTags(room.trim()) : null;
 
   next();
 }
@@ -135,7 +158,7 @@ function validateCommentInput(req, res, next) {
   if (!message || typeof message !== 'string' || !validator.isLength(message.trim(), { min: 1, max: 2500 })) {
     return res.status(400).json({ error: 'Comment message cannot be empty or exceed 2500 characters.' });
   }
-  req.body.message = message.trim();
+  req.body.message = stripHtmlTags(message.trim());
   next();
 }
 
@@ -151,7 +174,9 @@ function validateFeedbackInput(req, res, next) {
   }
 
   if (comments && typeof comments === 'string' && comments.length > 1000) {
-    req.body.comments = comments.slice(0, 1000).trim();
+    req.body.comments = stripHtmlTags(comments.slice(0, 1000).trim());
+  } else if (comments && typeof comments === 'string') {
+    req.body.comments = stripHtmlTags(comments.trim());
   }
 
   req.body.rating = numRating;
@@ -164,6 +189,8 @@ module.exports = {
   validateComplaintInput,
   validateCommentInput,
   validateFeedbackInput,
+  stripHtmlTags,
+  escapeRegex,
   VALID_STATUSES,
   VALID_PRIORITIES,
   VALID_CATEGORIES

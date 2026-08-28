@@ -126,7 +126,7 @@ router.post('/create-staff', requireAuth, async (req, res) => {
   }
 });
 
-// Login (with brute-force protection and validation)
+// Login (with brute-force lockout protection and validation) (OWASP A07)
 router.post('/login', authLimiter, validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -139,19 +139,71 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
         ipAddress: req.ip,
         details: 'Invalid login attempt - account does not exist.'
       });
+      // Uniform timing dummy compare to prevent timing attack enumeration
+      await bcrypt.compare(password, '$2a$10$abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqr');
       return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    // Check if account is currently locked out
+    if (userDoc.lock_until && userDoc.lock_until > new Date()) {
+      const remainingMinutes = Math.ceil((userDoc.lock_until.getTime() - Date.now()) / (60 * 1000));
+      logAuditEvent({
+        userId: userDoc._id,
+        userEmail: email,
+        action: 'LOGIN_ATTEMPT_LOCKED_ACCOUNT',
+        ipAddress: req.ip,
+        details: `Rejected login attempt on locked account (${remainingMinutes}m remaining).`
+      });
+      return res.status(423).json({
+        error: `Account is temporarily locked due to repeated failed login attempts. Please wait ${remainingMinutes} minute(s) before trying again.`
+      });
     }
 
     const isMatch = await bcrypt.compare(password, userDoc.password);
     if (!isMatch) {
-      logAuditEvent({
-        userId: userDoc._id,
-        userEmail: email,
-        action: 'LOGIN_FAILURE_WRONG_PASSWORD',
-        ipAddress: req.ip,
-        details: 'Failed password verification.'
+      const newFailedCount = (userDoc.failed_login_attempts || 0) + 1;
+      let updateFields = { failed_login_attempts: newFailedCount };
+
+      if (newFailedCount >= 5) {
+        const lockoutTime = new Date(Date.now() + 15 * 60 * 1000); // 15 min lock
+        updateFields.lock_until = lockoutTime;
+
+        logAuditEvent({
+          userId: userDoc._id,
+          userEmail: email,
+          action: 'ACCOUNT_LOCKED_BRUTE_FORCE',
+          ipAddress: req.ip,
+          details: 'Account locked for 15 minutes after 5 consecutive failed login attempts.'
+        });
+      } else {
+        logAuditEvent({
+          userId: userDoc._id,
+          userEmail: email,
+          action: 'LOGIN_FAILURE_WRONG_PASSWORD',
+          ipAddress: req.ip,
+          details: `Failed password verification (${newFailedCount}/5 attempts).`
+        });
+      }
+
+      await User.findByIdAndUpdate(userDoc._id, updateFields);
+
+      if (newFailedCount >= 5) {
+        return res.status(423).json({
+          error: 'Security alert: Account has been locked for 15 minutes due to 5 consecutive failed login attempts.'
+        });
+      }
+
+      return res.status(401).json({
+        error: `Invalid email or password. (${5 - newFailedCount} attempt(s) remaining before temporary lockout).`
       });
-      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    // Reset failed login attempts and clear lockout on successful login
+    if (userDoc.failed_login_attempts > 0 || userDoc.lock_until) {
+      await User.findByIdAndUpdate(userDoc._id, {
+        failed_login_attempts: 0,
+        lock_until: null
+      });
     }
 
     const safeUser = {
