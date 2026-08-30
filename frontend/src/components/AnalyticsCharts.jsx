@@ -13,7 +13,13 @@ import {
 export default function AnalyticsCharts({ analytics }) {
   if (!analytics) return null;
 
-  const { kpis, statusStats = [], categoryStats = [], priorityStats = [], departmentStats = [] } = analytics;
+  const { 
+    kpis = { resolutionRate: 0, total: 0, resolved: 0, pending: 0, inProgress: 0, critical: 0 }, 
+    statusStats = [], 
+    categoryStats = [], 
+    priorityStats = [], 
+    departmentStats = [] 
+  } = analytics || {};
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
@@ -89,7 +95,7 @@ export default function AnalyticsCharts({ analytics }) {
               padding: '2px 8px',
               borderRadius: 'var(--radius-sm)'
             }}>
-              {kpis.resolutionRate}% Resolved
+              {(kpis?.resolutionRate ?? 0)}% Resolved
             </span>
           </div>
 

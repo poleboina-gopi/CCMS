@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, LogIn } from 'lucide-react';
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -20,6 +20,10 @@ export class ErrorBoundary extends React.Component {
       localStorage.removeItem('ccms_user');
       localStorage.removeItem('ccms_token');
     } catch {}
+    window.location.href = '/';
+  };
+
+  handleReload = () => {
     window.location.reload();
   };
 
@@ -37,7 +41,7 @@ export class ErrorBoundary extends React.Component {
           fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
         }}>
           <div style={{
-            maxWidth: '480px',
+            maxWidth: '520px',
             width: '100%',
             backgroundColor: '#1e293b',
             border: '1px solid #334155',
@@ -61,34 +65,74 @@ export class ErrorBoundary extends React.Component {
             </div>
 
             <h2 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '8px' }}>
-              Something went wrong
+              Session or Interface Refresh Required
             </h2>
 
-            <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '24px', lineHeight: '1.5' }}>
-              CampusResolve encountered an unexpected issue. Click below to reload the app.
+            <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '20px', lineHeight: '1.5' }}>
+              Your browser may have cached previous session data. Click below to refresh your session and sign in.
             </p>
 
-            <button
-              onClick={this.handleReset}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                width: '100%',
-                padding: '12px 20px',
-                backgroundColor: '#4f46e5',
-                color: '#ffffff',
-                border: 'none',
+            {this.state.error?.message && (
+              <div style={{
+                padding: '10px 14px',
+                backgroundColor: '#0f172a',
+                border: '1px solid #334155',
                 borderRadius: '8px',
-                fontWeight: '700',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              <RefreshCw size={16} /> Reload CampusResolve
-            </button>
+                color: '#f43f5e',
+                fontSize: '0.78rem',
+                fontFamily: 'monospace',
+                marginBottom: '20px',
+                textAlign: 'left',
+                overflowX: 'auto'
+              }}>
+                {this.state.error.message}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                onClick={this.handleReset}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  padding: '12px 20px',
+                  backgroundColor: '#4f46e5',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <LogIn size={16} /> Reset Session & Sign In
+              </button>
+
+              <button
+                onClick={this.handleReload}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  padding: '10px 20px',
+                  backgroundColor: 'transparent',
+                  color: '#94a3b8',
+                  border: '1px solid #334155',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <RefreshCw size={15} /> Reload Page
+              </button>
+            </div>
           </div>
         </div>
       );

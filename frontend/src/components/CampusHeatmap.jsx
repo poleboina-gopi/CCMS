@@ -34,7 +34,7 @@ export default function CampusHeatmap({ onSelectBuilding }) {
 
   if (heatmaps.length === 0) return null;
 
-  const maxComplaints = Math.max(...heatmaps.map(h => h.total), 1);
+  const maxComplaints = Math.max(...heatmaps.map(h => h.total || 0), 1);
 
   return (
     <div className="glass-panel" style={{ padding: '24px' }}>

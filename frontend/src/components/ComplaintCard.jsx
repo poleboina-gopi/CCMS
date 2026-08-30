@@ -36,19 +36,21 @@ const categoryColors = {
   'Other': '#64748b'
 };
 
-export default function ComplaintCard({ complaint, onSelect, onQuickAssign, onQuickStatus, userRole }) {
+export default function ComplaintCard({ complaint = {}, onSelect, onQuickAssign, onQuickStatus, userRole }) {
   const { authFetch } = useAuth();
-  const [upvotesCount, setUpvotesCount] = useState(complaint.upvotes_count || 0);
-  const [hasUpvoted, setHasUpvoted] = useState(complaint.has_upvoted || false);
+  const [upvotesCount, setUpvotesCount] = useState(complaint?.upvotes_count || 0);
+  const [hasUpvoted, setHasUpvoted] = useState(complaint?.has_upvoted || false);
   const [upvoting, setUpvoting] = useState(false);
+
+  if (!complaint || !complaint.id) return null;
 
   const categoryColor = categoryColors[complaint.category] || 'var(--primary)';
 
-  const formattedDate = new Date(complaint.created_at).toLocaleDateString('en-US', {
+  const formattedDate = complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  });
+  }) : '';
 
   const handleUpvote = async (e) => {
     e.stopPropagation();
