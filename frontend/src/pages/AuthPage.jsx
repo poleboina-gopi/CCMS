@@ -428,10 +428,68 @@ export default function AuthPage() {
             </button>
           </form>
 
+          {/* 1-Click Fast Demo Login Buttons */}
+          {!isRegister && (
+            <div style={{ marginTop: '20px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={14} color="var(--primary)" /> Quick Demo Login (Auto-fill):
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@campus.edu');
+                    setPassword('password123');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', justifyContent: 'flex-start', padding: '8px 10px', gap: '6px' }}
+                >
+                  <ShieldCheck size={14} color="var(--accent-rose)" /> Admin (Dean)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('rahul.student@campus.edu');
+                    setPassword('password123');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', justifyContent: 'flex-start', padding: '8px 10px', gap: '6px' }}
+                >
+                  <GraduationCap size={14} color="var(--primary)" /> Student
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('alex.it@campus.edu');
+                    setPassword('password123');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', justifyContent: 'flex-start', padding: '8px 10px', gap: '6px' }}
+                >
+                  <Wrench size={14} color="var(--accent-amber)" /> Wi-Fi / IT Staff
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('priya.hostel@campus.edu');
+                    setPassword('password123');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem', justifyContent: 'flex-start', padding: '8px 10px', gap: '6px' }}
+                >
+                  <Building2 size={14} color="var(--accent-emerald)" /> Hostel Staff
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Admin / Staff Login Helper */}
           {!isRegister && (
             <div style={{
-              marginTop: '20px',
+              marginTop: '16px',
               padding: '12px 14px',
               backgroundColor: 'var(--bg-input)',
               border: '1px solid var(--border-color)',
@@ -442,7 +500,7 @@ export default function AuthPage() {
             }}>
               <ShieldCheck size={16} color="var(--primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
-                <strong style={{ color: 'var(--text-primary)' }}>Administrator & Staff Login:</strong> Enter your designated college email (e.g. <code style={{ color: 'var(--primary)', fontWeight: '700' }}>admin@campus.edu</code>) to access the administrative command center.
+                <strong style={{ color: 'var(--text-primary)' }}>Administrator & Staff Login:</strong> Click any demo role chip above or enter your designated email to access the command center.
               </div>
             </div>
           )}

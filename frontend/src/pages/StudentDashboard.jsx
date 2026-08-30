@@ -85,7 +85,7 @@ export default function StudentDashboard({ onSelectComplaint, onNavigateSubmit }
       >
         <div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: '800', marginBottom: '6px' }}>
-            Welcome back, {user?.name.split(' ')[0]} 👋
+            Welcome back, {user?.name ? user.name.split(' ')[0] : 'Student'} 👋
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem' }}>
             Track your campus complaints, view live maintenance updates, or report a new issue.
