@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   GraduationCap,
   Menu,
-  X
+  X,
+  QrCode
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, onSelectComplaint }) {
