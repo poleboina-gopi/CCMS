@@ -12,7 +12,9 @@ const AuditLog = require('./models/AuditLog');
 async function connectDB() {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ccms';
   try {
-    const conn = await mongoose.connect(uri);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000
+    });
     console.log(`🍃 Connected to MongoDB Database: ${conn.connection.name} @ ${conn.connection.host}`);
     await ensureBaseAdminUser();
     return conn;

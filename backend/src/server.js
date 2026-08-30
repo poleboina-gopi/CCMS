@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 const { connectDB } = require('./db');
 
 const helmet = require('helmet');
@@ -84,13 +85,26 @@ app.use('/uploads', (req, res, next) => {
 
 // Healthcheck
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.status(isDbConnected ? 200 : 503).json({
+    status: isDbConnected ? 'ok' : 'degraded',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    databaseName: isDbConnected ? (mongoose.connection.name || 'ccms') : null,
     security: 'OWASP Top 10 Hardened',
-    database: 'MongoDB Atlas',
     service: 'College Complaint Management System API',
     timestamp: new Date().toISOString()
   });
+});
+
+// Guard: If database is disconnected, fail fast with 503 instead of hanging
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: 'Database connection is temporarily unavailable. Please check that MongoDB is running.'
+    });
+  }
+  next();
 });
 
 // API Routes
