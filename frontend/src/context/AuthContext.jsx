@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
-export const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') ? 'https://ccms-n753.onrender.com' : '');
+export const API_BASE = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  window.location.hostname !== '127.0.0.1' &&
+  !window.location.hostname.startsWith('192.168.') &&
+  !window.location.hostname.startsWith('10.')
+    ? 'https://ccms-n753.onrender.com' 
+    : ''
+);
 
 /**
  * Safely resolves relative and absolute media/upload URLs
