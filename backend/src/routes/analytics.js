@@ -23,33 +23,73 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       filter.$or = staffConds;
     }
 
-    // 1. KPI Counts
-    const total = await Complaint.countDocuments(filter);
-    const submittedCount = await Complaint.countDocuments({ ...filter, status: 'Submitted' });
-    const underReviewCount = await Complaint.countDocuments({ ...filter, status: 'Under Review' });
-    const assignedCount = await Complaint.countDocuments({ ...filter, status: 'Assigned' });
-    const inProgressCount = await Complaint.countDocuments({ ...filter, status: 'In Progress' });
-    const resolvedCount = await Complaint.countDocuments({ ...filter, status: 'Resolved' });
-    const closedCount = await Complaint.countDocuments({ ...filter, status: 'Closed' });
-    const criticalCount = await Complaint.countDocuments({
-      ...filter,
-      priority: 'Critical',
-      status: { $nin: ['Resolved', 'Closed'] }
-    });
+    let feedbackFilter = {};
+    if (isStudent) {
+      feedbackFilter.student_id = userId;
+    }
+
+    // High Performance: Run all 4 independent queries concurrently in parallel
+    const [complaintsForStats, allComplaints, feedbacks, urgentDocs] = await Promise.all([
+      Complaint.find(filter).select('category status priority department created_at ticket_number title location student_id').lean(),
+      Complaint.find({}).select('department status').lean(),
+      Feedback.find(feedbackFilter).select('rating complaint_id').lean(),
+      Complaint.find({
+        ...filter,
+        status: { $nin: ['Resolved', 'Closed'] }
+      })
+        .populate('student_id', 'name')
+        .sort({ created_at: -1 })
+        .limit(6)
+        .lean()
+    ]);
+
+    // Compute all KPI stats from complaintsForStats in memory (microsecond speed)
+    const total = complaintsForStats.length;
+    let submittedCount = 0;
+    let underReviewCount = 0;
+    let assignedCount = 0;
+    let inProgressCount = 0;
+    let resolvedCount = 0;
+    let closedCount = 0;
+    let criticalCount = 0;
+
+    const categoryMap = {};
+    const priorityMap = { Low: 0, Medium: 0, High: 0, Critical: 0 };
+
+    for (let i = 0; i < complaintsForStats.length; i++) {
+      const c = complaintsForStats[i];
+      const st = c.status;
+      if (st === 'Submitted') submittedCount++;
+      else if (st === 'Under Review') underReviewCount++;
+      else if (st === 'Assigned') assignedCount++;
+      else if (st === 'In Progress') inProgressCount++;
+      else if (st === 'Resolved') resolvedCount++;
+      else if (st === 'Closed') closedCount++;
+
+      if (c.priority === 'Critical' && st !== 'Resolved' && st !== 'Closed') {
+        criticalCount++;
+      }
+
+      if (priorityMap[c.priority] !== undefined) {
+        priorityMap[c.priority]++;
+      }
+
+      const cat = c.category || 'Other';
+      if (!categoryMap[cat]) {
+        categoryMap[cat] = { category: cat, total: 0, resolved: 0, pending: 0 };
+      }
+      categoryMap[cat].total++;
+      if (st === 'Resolved' || st === 'Closed') {
+        categoryMap[cat].resolved++;
+      } else {
+        categoryMap[cat].pending++;
+      }
+    }
 
     const totalResolved = resolvedCount + closedCount;
     const resolutionRate = total > 0 ? Math.round((totalResolved / total) * 100) : 0;
 
-    // 2. Average Rating
-    let feedbackFilter = {};
-    if (isStudent) {
-      feedbackFilter.student_id = userId;
-    } else if (isStaff) {
-      const staffComplaints = await Complaint.find(filter).select('_id').lean();
-      feedbackFilter.complaint_id = { $in: staffComplaints.map(c => c._id) };
-    }
-
-    const feedbacks = await Feedback.find(feedbackFilter).select('rating').lean();
+    // Average Rating
     let averageRating = 0;
     const ratingCount = feedbacks.length;
     if (ratingCount > 0) {
@@ -57,24 +97,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       averageRating = Number((sum / ratingCount).toFixed(1));
     }
 
-    // 3. Category Breakdown
-    const complaintsForStats = await Complaint.find(filter).select('category status priority department').lean();
-    const categoryMap = {};
-    complaintsForStats.forEach(c => {
-      const cat = c.category || 'Other';
-      if (!categoryMap[cat]) {
-        categoryMap[cat] = { category: cat, total: 0, resolved: 0, pending: 0 };
-      }
-      categoryMap[cat].total++;
-      if (['Resolved', 'Closed'].includes(c.status)) {
-        categoryMap[cat].resolved++;
-      } else {
-        categoryMap[cat].pending++;
-      }
-    });
     const categoryStats = Object.values(categoryMap).sort((a, b) => b.total - a.total);
 
-    // 4. Status Breakdown
     const statusStats = [
       { status: 'Submitted', count: submittedCount, color: '#6366f1' },
       { status: 'Under Review', count: underReviewCount, color: '#8b5cf6' },
@@ -84,44 +108,27 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       { status: 'Closed', count: closedCount, color: '#64748b' }
     ];
 
-    // 5. Priority Distribution
-    const priorityMap = { Low: 0, Medium: 0, High: 0, Critical: 0 };
-    complaintsForStats.forEach(c => {
-      if (priorityMap[c.priority] !== undefined) {
-        priorityMap[c.priority]++;
-      }
-    });
     const priorityStats = Object.keys(priorityMap).map(p => ({
       priority: p,
       count: priorityMap[p]
     }));
 
-    // 6. Department Workload
-    const allComplaints = await Complaint.find({}).select('department status').lean();
+    // Department workload
     const deptMap = {};
-    allComplaints.forEach(c => {
+    for (let i = 0; i < allComplaints.length; i++) {
+      const c = allComplaints[i];
       const dept = c.department || 'Unassigned';
       if (!deptMap[dept]) {
         deptMap[dept] = { department: dept, total: 0, resolved: 0, active: 0 };
       }
       deptMap[dept].total++;
-      if (['Resolved', 'Closed'].includes(c.status)) {
+      if (c.status === 'Resolved' || c.status === 'Closed') {
         deptMap[dept].resolved++;
       } else {
         deptMap[dept].active++;
       }
-    });
+    }
     const departmentStats = Object.values(deptMap).sort((a, b) => b.total - a.total);
-
-    // 7. Recent Urgent Complaints
-    const urgentDocs = await Complaint.find({
-      ...filter,
-      status: { $nin: ['Resolved', 'Closed'] }
-    })
-      .populate('student_id', 'name')
-      .sort({ created_at: -1 })
-      .limit(6)
-      .lean();
 
     const urgentQueue = urgentDocs.map(c => ({
       id: c._id.toString(),

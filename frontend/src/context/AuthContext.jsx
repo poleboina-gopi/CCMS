@@ -54,6 +54,23 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('ccms_token');
   }, []);
 
+  // Proactive Warm-Up & Keep-Alive Ping for Render Free Tier
+  useEffect(() => {
+    if (API_BASE && API_BASE.startsWith('http')) {
+      // 1. Instant background wake-up ping on mount
+      fetch(`${API_BASE}/api/health`, { method: 'GET', keepalive: true }).catch(() => {});
+
+      // 2. Keep-alive ping every 4 minutes while browser tab is active
+      const keepAliveInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && !document.hidden) {
+          fetch(`${API_BASE}/api/health`, { method: 'GET', keepalive: true }).catch(() => {});
+        }
+      }, 4 * 60 * 1000);
+
+      return () => clearInterval(keepAliveInterval);
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();

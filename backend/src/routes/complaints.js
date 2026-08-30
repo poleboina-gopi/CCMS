@@ -233,14 +233,16 @@ router.get('/', requireAuth, async (req, res) => {
     const sortDir = sortOrder.toUpperCase() === 'ASC' ? 1 : -1;
     const sortField = ['created_at', 'updated_at', 'priority', 'status'].includes(sortBy) ? sortBy : 'created_at';
 
-    const complaints = await Complaint.find(query)
-      .populate('student_id', 'name email student_id phone')
-      .populate('assigned_to', 'name email department')
-      .sort({ [sortField]: sortDir })
-      .skip(Number(offset) || 0)
-      .limit(Number(limit) || 100);
-
-    const total = await Complaint.countDocuments(query);
+    const [complaints, total] = await Promise.all([
+      Complaint.find(query)
+        .populate('student_id', 'name email student_id phone')
+        .populate('assigned_to', 'name email department')
+        .sort({ [sortField]: sortDir })
+        .skip(Number(offset) || 0)
+        .limit(Number(limit) || 100)
+        .lean(),
+      Complaint.countDocuments(query)
+    ]);
 
     // Fetch comment counts and feedbacks for these complaints
     const complaintIds = complaints.map(c => c._id);
@@ -250,8 +252,10 @@ router.get('/', requireAuth, async (req, res) => {
       feedbackMap[f.complaint_id.toString()] = f;
     });
 
-    // Check for SLA escalations in background
-    checkAndAutoEscalate();
+    // Check for SLA escalations in background (non-blocking)
+    setImmediate(() => {
+      checkAndAutoEscalate().catch(() => {});
+    });
 
     const formattedComplaints = complaints.map(c => {
       const fb = feedbackMap[c._id.toString()] || null;
